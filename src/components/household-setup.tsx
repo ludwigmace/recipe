@@ -10,7 +10,7 @@ export function HouseholdSetup() {
   return (
     <main className="setup-shell">
       <section className="household-card">
-        <span className="wordmark-mark" aria-hidden="true">R</span>
+        <p className="brand-name">RecipeRepo</p>
         <p className="eyebrow">START YOUR SHARED COOKBOOK</p>
         <h1>Give it a name.</h1>
         <p className="muted">

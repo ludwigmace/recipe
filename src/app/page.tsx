@@ -65,8 +65,7 @@ export default async function Home({ searchParams }: PageProps) {
           className="wordmark"
           href={`/?household=${encodeURIComponent(household.id)}`}
         >
-          <span className="wordmark-mark" aria-hidden="true">R</span>
-          recipe
+          RecipeRepo
         </Link>
         <div className="topbar-household">
           <h1>{household.name}</h1>
@@ -124,7 +123,7 @@ function SetupNotice({ message }: { message?: string }) {
   return (
     <main className="setup-shell">
       <div className="setup-card">
-        <span className="wordmark-mark" aria-hidden="true">R</span>
+        <p className="brand-name">RecipeRepo</p>
         <p className="eyebrow">SETUP</p>
         <h1>Set up your recipe library.</h1>
         <p className="muted">

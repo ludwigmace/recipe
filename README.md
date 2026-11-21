@@ -1,4 +1,4 @@
-# Recipe
+# RecipeRepo
 
 A shared household cookbook: save a recipe from a webpage, review the clean copy, and find it by name when it is time to cook.
 

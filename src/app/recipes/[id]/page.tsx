@@ -52,8 +52,7 @@ export default async function RecipePage({ params, searchParams }: PageProps) {
     <main className="page-shell">
       <header className="topbar">
         <Link className="wordmark" href={libraryUrl}>
-          <span className="wordmark-mark" aria-hidden="true">R</span>
-          recipe
+          RecipeRepo
         </Link>
         <div className="topbar-household">
           <span>{household.name}</span>

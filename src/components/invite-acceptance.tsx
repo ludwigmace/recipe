@@ -9,7 +9,7 @@ export function InviteAcceptance({ token }: { token: string }) {
   return (
     <main className="setup-shell">
       <section className="invite-accept-card">
-        <span className="wordmark-mark" aria-hidden="true">R</span>
+        <p className="brand-name">RecipeRepo</p>
         <p className="eyebrow">YOU’RE INVITED</p>
         <h1>Pull up a chair.</h1>
         <p className="muted">

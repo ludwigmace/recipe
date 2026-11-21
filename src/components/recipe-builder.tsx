@@ -194,8 +194,7 @@ export function RecipeBuilder({
             if (!confirmLeave()) event.preventDefault();
           }}
         >
-          <span className="wordmark-mark" aria-hidden="true">R</span>
-          recipe
+          RecipeRepo
         </Link>
         <div className="topbar-household">
           <span>{householdName}</span>

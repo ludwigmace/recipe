@@ -43,8 +43,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
     <main className="page-shell">
       <header className="topbar">
         <Link className="wordmark" href={libraryUrl}>
-          <span className="wordmark-mark" aria-hidden="true">R</span>
-          recipe
+          RecipeRepo
         </Link>
         <div className="topbar-household">
           <h1>{household.name}</h1>

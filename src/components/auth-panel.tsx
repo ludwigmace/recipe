@@ -13,7 +13,7 @@ export function AuthPanel({ inviteToken }: { inviteToken: string }) {
   return (
     <main className="setup-shell">
       <section className="auth-card">
-        <span className="wordmark-mark" aria-hidden="true">R</span>
+        <p className="brand-name">RecipeRepo</p>
         <p className="eyebrow">YOUR HOUSEHOLD COOKBOOK</p>
         <h1>{mode === "signin" ? "Welcome back." : "Make room at the table."}</h1>
         <p className="muted">

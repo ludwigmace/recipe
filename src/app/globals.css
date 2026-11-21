@@ -36,8 +36,8 @@ a { color: inherit; }
 
 .page-shell { width: min(1050px, calc(100% - 40px)); margin: 0 auto; }
 .topbar { min-height: 76px; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; border-bottom: 1px solid var(--line); }
-.wordmark { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); font-size: 20px; font-weight: 700; letter-spacing: -0.06em; text-decoration: none; }
-.wordmark-mark { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 10px 10px 10px 3px; background: var(--green); color: white; font-family: "DM Sans", sans-serif; font-size: 17px; font-weight: 700; }
+.wordmark { display: inline-flex; align-items: center; color: var(--ink); font-size: 20px; font-weight: 700; letter-spacing: -0.025em; text-decoration: none; }
+.brand-name { margin: 0 0 24px; color: var(--ink); font-size: 22px; font-weight: 700; letter-spacing: -0.025em; }
 .topbar-household { min-width: 0; justify-self: center; text-align: center; }
 .topbar-household h1, .topbar-household > span { display: block; max-width: min(42vw, 480px); margin: 0; overflow: hidden; color: var(--ink); font-family: "DM Sans", sans-serif; font-size: clamp(20px, 2.6vw, 30px); font-weight: 600; letter-spacing: 0; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
 .topbar-household .household-switcher { margin-top: 2px; }
@@ -162,7 +162,7 @@ label { display: grid; gap: 7px; color: #514e47; font-size: 12px; font-weight: 6
 
 .setup-shell { min-height: 100vh; display: grid; place-items: center; padding: 22px; }
 .setup-card { width: min(480px, 100%); padding: 38px; border: 1px solid var(--line); border-radius: 18px; background: var(--card); box-shadow: var(--shadow); }
-.setup-card > .wordmark-mark { margin-bottom: 28px; }
+.setup-card > .brand-name { margin-bottom: 28px; }
 .setup-card h1 { margin: 0 0 10px; font-size: 38px; }
 .muted, .setup-help { color: var(--muted); }
 .setup-command { margin: 22px 0 12px; padding: 13px; border-radius: 8px; background: #f0eee8; font-size: 13px; }
