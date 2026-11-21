@@ -175,6 +175,25 @@ describe("RecipeLibrary", () => {
     ).resolves.toBeNull();
   });
 
+  it("finds a recipe by id only within its household", async () => {
+    const library = createRecipeLibrary(createMemoryStore());
+    const { recipe } = await library.save({
+      householdId: "home-1",
+      actorId: "member-1",
+      title: "Sweet Potato Pie",
+      ingredients: ["2 cups mashed sweet potato"],
+      method: ["Bake"],
+      sourceUrl: "https://example.com/sweet-potato-pie",
+    });
+
+    await expect(
+      library.findById({ householdId: "home-1", recipeId: recipe.id }),
+    ).resolves.toEqual(recipe);
+    await expect(
+      library.findById({ householdId: "home-2", recipeId: recipe.id }),
+    ).resolves.toBeNull();
+  });
+
   it("opens an existing recipe even when the duplicate page cannot be extracted", async () => {
     const library = createRecipeLibrary(createMemoryStore());
     const draft = {

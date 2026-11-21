@@ -40,6 +40,7 @@ export interface RecipeLibrary {
     householdId: string;
     sourceUrl: string;
   }): Promise<Recipe | null>;
+  findById(input: { householdId: string; recipeId: string }): Promise<Recipe | null>;
   search(input: { householdId: string; query: string }): Promise<Recipe[]>;
   listArchived(input: { householdId: string }): Promise<Recipe[]>;
   archive(input: { householdId: string; recipeId: string }): Promise<Recipe>;
@@ -140,6 +141,10 @@ export function createRecipeLibrary(store: RecipeStore): RecipeLibrary {
       return canonicalUrl
         ? store.findBySource(householdId, canonicalUrl)
         : null;
+    },
+
+    async findById({ householdId, recipeId }) {
+      return store.findById(householdId, recipeId);
     },
 
     async search({ householdId, query }) {

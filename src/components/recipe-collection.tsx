@@ -1,5 +1,6 @@
+import Link from "next/link";
 import type { Recipe } from "@/lib/recipe-library";
-import { ArchiveRecipeForm, EditRecipeForm, RestoreRecipeForm } from "./recipe-forms";
+import { RestoreRecipeForm } from "./recipe-forms";
 
 interface Props {
   householdId: string;
@@ -29,41 +30,25 @@ export function RecipeCollection({
       {recipes.length ? (
         <div className="recipe-grid">
           {recipes.map((recipe) => (
-            <article className="recipe-card" id={`recipe-${recipe.id}`} key={recipe.id}>
+            <Link
+              className="recipe-card recipe-summary"
+              href={`/recipes/${encodeURIComponent(recipe.id)}?household=${encodeURIComponent(householdId)}`}
+              id={`recipe-${recipe.id}`}
+              key={recipe.id}
+            >
               <div className="recipe-card-content">
                 <div className="recipe-meta"><span className="pill">Household recipe</span></div>
                 <h3>{recipe.title}</h3>
                 {recipe.sourceUrl && (
-                  <p className="recipe-source">
-                    From{" "}
-                    <a href={recipe.sourceUrl} target="_blank" rel="noreferrer">
-                      {new URL(recipe.sourceUrl).hostname}
-                    </a>
+                  <p
+                    className="recipe-source recipe-summary-source"
+                    title={recipe.sourceUrl}
+                  >
+                    Source URL: {recipe.sourceUrl}
                   </p>
                 )}
-                <div className="recipe-columns">
-                  <div>
-                    <h4>Ingredients</h4>
-                    <ul>{recipe.ingredients.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul>
-                  </div>
-                  <div>
-                    <h4>Method</h4>
-                    <ol>{recipe.method.map((step, index) => <li key={`${index}-${step}`}>{step}</li>)}</ol>
-                  </div>
-                </div>
-                <div className="recipe-actions">
-                  <ArchiveRecipeForm
-                    householdId={householdId}
-                    recipeId={recipe.id}
-                    recipeTitle={recipe.title}
-                  />
-                  <details className="edit-details">
-                    <summary>Correct this recipe</summary>
-                    <EditRecipeForm householdId={householdId} recipe={recipe} />
-                  </details>
-                </div>
               </div>
-            </article>
+            </Link>
           ))}
         </div>
       ) : (
