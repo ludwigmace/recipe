@@ -103,7 +103,7 @@ export function RecipeCollection({
           <h2 id="archived-title">Archived recipes</h2>
           <div className="archived-list">
             {archivedRecipes.map((recipe) => (
-              <div className="archived-row" key={recipe.id}>
+              <div className="archived-row" id={`recipe-${recipe.id}`} key={recipe.id}>
                 <div>
                   <strong>{recipe.title}</strong>
                   {recipe.sourceUrl && (

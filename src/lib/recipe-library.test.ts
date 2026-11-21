@@ -150,6 +150,31 @@ describe("RecipeLibrary", () => {
     expect(secondResult.wasDuplicate).toBe(true);
   });
 
+  it("finds a saved recipe by its canonical source URL within its household", async () => {
+    const library = createRecipeLibrary(createMemoryStore());
+    const { recipe } = await library.save({
+      householdId: "home-1",
+      actorId: "member-1",
+      title: "Sweet Potato Pie",
+      ingredients: ["2 cups mashed sweet potato"],
+      method: ["Bake"],
+      sourceUrl: "https://example.com/sweet-potato-pie",
+    });
+
+    await expect(
+      library.findBySource({
+        householdId: "home-1",
+        sourceUrl: "https://example.com/sweet-potato-pie#recipe",
+      }),
+    ).resolves.toEqual(recipe);
+    await expect(
+      library.findBySource({
+        householdId: "home-2",
+        sourceUrl: "https://example.com/sweet-potato-pie",
+      }),
+    ).resolves.toBeNull();
+  });
+
   it("opens an existing recipe even when the duplicate page cannot be extracted", async () => {
     const library = createRecipeLibrary(createMemoryStore());
     const draft = {

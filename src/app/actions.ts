@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createRecipeLibrary, type Recipe } from "@/lib/recipe-library";
-import type { ActionState } from "@/lib/action-state";
+import type { ActionState, ExistingRecipeSummary } from "@/lib/action-state";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseRecipeStore } from "@/lib/supabase/recipe-store";
 
@@ -138,6 +138,7 @@ export async function saveRecipeAction(
         existingRecipe: {
           id: result.recipe.id,
           title: result.recipe.title,
+          archived: false,
         },
       };
     }
@@ -147,6 +148,24 @@ export async function saveRecipeAction(
   }
   revalidatePath("/");
   redirect(`/?household=${encodeURIComponent(householdId)}#recipe-${saved.id}`);
+}
+
+export async function findRecipeBySourceAction(
+  householdId: string,
+  sourceUrl: string,
+): Promise<ExistingRecipeSummary | null> {
+  const client = await createSupabaseServerClient();
+  if (!(await currentUser(client))) return null;
+
+  const library = createRecipeLibrary(createSupabaseRecipeStore(client));
+  const recipe = await library.findBySource({ householdId, sourceUrl });
+  return recipe
+    ? {
+        id: recipe.id,
+        title: recipe.title,
+        archived: recipe.archivedAt !== null,
+      }
+    : null;
 }
 
 export async function editRecipeAction(

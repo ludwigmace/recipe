@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { saveRecipeAction } from "@/app/actions";
-import type { ActionState } from "@/lib/action-state";
+import { findRecipeBySourceAction, saveRecipeAction } from "@/app/actions";
+import type { ActionState, ExistingRecipeSummary } from "@/lib/action-state";
 import type { RecipeExtraction } from "@/lib/recipe-extractor";
 
 interface Draft {
@@ -34,8 +34,11 @@ export function RecipeBuilder({
   const [draft, setDraft] = useState<Draft | null>(null);
   const [warning, setWarning] = useState("");
   const [extractError, setExtractError] = useState("");
+  const [sourceCheckError, setSourceCheckError] = useState("");
+  const [existingRecipe, setExistingRecipe] = useState<ExistingRecipeSummary | null>(null);
   const [extracting, setExtracting] = useState(false);
   const dirtyRef = useRef(false);
+  const sourceCheckRequestRef = useRef(0);
   const suppressPopStateRef = useRef(false);
 
   function markDirty() {
@@ -81,20 +84,40 @@ export function RecipeBuilder({
 
   function cancelEntry() {
     if (!confirmLeave()) return;
+    sourceCheckRequestRef.current += 1;
     setEntryPath(null);
     setDraft(null);
     setUrl("");
     setWarning("");
     setExtractError("");
+    setSourceCheckError("");
+    setExistingRecipe(null);
   }
 
   function cancelToLibrary() {
     if (!confirmLeave()) return;
+    sourceCheckRequestRef.current += 1;
     router.push(libraryUrl);
   }
 
   function openExistingRecipe() {
     dirtyRef.current = false;
+  }
+
+  async function checkExistingSource(sourceUrl: string): Promise<ExistingRecipeSummary | null> {
+    const request = ++sourceCheckRequestRef.current;
+    setSourceCheckError("");
+    try {
+      const existing = await findRecipeBySourceAction(householdId, sourceUrl);
+      if (request !== sourceCheckRequestRef.current) return null;
+      setExistingRecipe(existing);
+      return existing;
+    } catch {
+      if (request === sourceCheckRequestRef.current) {
+        setSourceCheckError("Could not check for an existing recipe. We’ll check again when you save.");
+      }
+      return null;
+    }
   }
 
   function startManualEntry() {
@@ -106,9 +129,14 @@ export function RecipeBuilder({
     event.preventDefault();
     setExtractError("");
     setWarning("");
+    setExistingRecipe(null);
     setDraft(null);
     setExtracting(true);
     try {
+      if (await checkExistingSource(url)) {
+        markDirty();
+        return;
+      }
       const response = await fetch("/api/recipes/extract", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -136,6 +164,11 @@ export function RecipeBuilder({
   }
 
   function updateDraft(key: keyof Draft, value: string) {
+    if (key === "sourceUrl") {
+      sourceCheckRequestRef.current += 1;
+      setExistingRecipe(null);
+      setSourceCheckError("");
+    }
     setDraft((current) => {
       if (!current) return current;
       return {
@@ -207,8 +240,12 @@ export function RecipeBuilder({
                     inputMode="url"
                     placeholder="https://…"
                     value={url}
+                    disabled={extracting}
                     onChange={(event) => {
                       setUrl(event.target.value);
+                      sourceCheckRequestRef.current += 1;
+                      setExistingRecipe(null);
+                      setSourceCheckError("");
                       markDirty();
                     }}
                     required
@@ -217,6 +254,16 @@ export function RecipeBuilder({
                     {extracting ? "Reading page…" : "Find recipe"}
                   </button>
                 </form>
+                {sourceCheckError && !draft && (
+                  <p className="warning-note" role="status">{sourceCheckError}</p>
+                )}
+                {existingRecipe && (
+                  <ExistingRecipeNotice
+                    householdId={householdId}
+                    recipe={existingRecipe}
+                    onOpen={openExistingRecipe}
+                  />
+                )}
                 <p className="field-note">
                   Your saved copy stays as it was when you added it. The original page is kept as its source.
                 </p>
@@ -228,7 +275,10 @@ export function RecipeBuilder({
                     entryPath="import"
                     householdId={householdId}
                     warning={warning}
+                    existingRecipe={existingRecipe}
+                    sourceCheckError={sourceCheckError}
                     onChange={updateDraft}
+                    onSourceBlur={checkExistingSource}
                     onCancel={cancelToLibrary}
                     onOpenExisting={openExistingRecipe}
                   />
@@ -245,7 +295,10 @@ export function RecipeBuilder({
                   draft={draft}
                   entryPath="manual"
                   householdId={householdId}
+                  existingRecipe={existingRecipe}
+                  sourceCheckError={sourceCheckError}
                   onChange={updateDraft}
+                  onSourceBlur={checkExistingSource}
                   onCancel={cancelToLibrary}
                   onOpenExisting={openExistingRecipe}
                 />
@@ -268,7 +321,10 @@ function RecipeEditor({
   entryPath,
   householdId,
   warning,
+  existingRecipe,
+  sourceCheckError,
   onChange,
+  onSourceBlur,
   onCancel,
   onOpenExisting,
 }: {
@@ -276,7 +332,10 @@ function RecipeEditor({
   entryPath: EntryPath;
   householdId: string;
   warning?: string;
+  existingRecipe: ExistingRecipeSummary | null;
+  sourceCheckError: string;
   onChange: (key: keyof Draft, value: string) => void;
+  onSourceBlur: (sourceUrl: string) => void;
   onCancel: () => void;
   onOpenExisting: () => void;
 }) {
@@ -284,7 +343,7 @@ function RecipeEditor({
     saveRecipeAction,
     {},
   );
-  const libraryUrl = `/?household=${encodeURIComponent(householdId)}`;
+  const matchedRecipe = saveState.existingRecipe ?? existingRecipe;
 
   return (
     <form className="recipe-editor" action={saveAction}>
@@ -345,6 +404,9 @@ function RecipeEditor({
               inputMode="url"
               value={draft.sourceUrl ?? ""}
               onChange={(event) => onChange("sourceUrl", event.target.value)}
+              onBlur={(event) => {
+                if (event.target.value.trim()) onSourceBlur(event.target.value);
+              }}
               placeholder="https://…"
             />
           </label>
@@ -359,17 +421,39 @@ function RecipeEditor({
         </button>
       </div>
       {saveState.error && <p className="inline-error" role="alert">{saveState.error}</p>}
-      {saveState.existingRecipe && (
-        <p className="warning-note" role="status">
-          This source is already in your household library.{" "}
-          <Link
-            href={`${libraryUrl}#recipe-${saveState.existingRecipe.id}`}
-            onClick={onOpenExisting}
-          >
-            View “{saveState.existingRecipe.title}”
-          </Link>
-        </p>
+      {sourceCheckError && (
+        <p className="warning-note" role="status">{sourceCheckError}</p>
+      )}
+      {matchedRecipe && (
+        <ExistingRecipeNotice
+          householdId={householdId}
+          recipe={matchedRecipe}
+          onOpen={onOpenExisting}
+        />
       )}
     </form>
+  );
+}
+
+function ExistingRecipeNotice({
+  householdId,
+  recipe,
+  onOpen,
+}: {
+  householdId: string;
+  recipe: ExistingRecipeSummary;
+  onOpen: () => void;
+}) {
+  const libraryUrl = `/?household=${encodeURIComponent(householdId)}`;
+
+  return (
+    <p className="warning-note" role="status">
+      {recipe.archived
+        ? "This source is already in your archived recipes. "
+        : "This source is already in your household library. "}
+      <Link href={`${libraryUrl}#recipe-${recipe.id}`} onClick={onOpen}>
+        View “{recipe.title}”
+      </Link>
+    </p>
   );
 }

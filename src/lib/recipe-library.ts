@@ -36,6 +36,10 @@ export interface RecipeSaveResult {
 
 export interface RecipeLibrary {
   save(draft: RecipeDraft): Promise<RecipeSaveResult>;
+  findBySource(input: {
+    householdId: string;
+    sourceUrl: string;
+  }): Promise<Recipe | null>;
   search(input: { householdId: string; query: string }): Promise<Recipe[]>;
   listArchived(input: { householdId: string }): Promise<Recipe[]>;
   archive(input: { householdId: string; recipeId: string }): Promise<Recipe>;
@@ -86,24 +90,26 @@ export function createRecipeLibrary(store: RecipeStore): RecipeLibrary {
     return recipe;
   }
 
+  async function restoreArchivedDuplicate(recipe: Recipe): Promise<RecipeSaveResult> {
+    const now = new Date().toISOString();
+    return {
+      recipe: requireRecipe(
+        await store.update(recipe.householdId, recipe.id, {
+          archivedAt: null,
+          updatedAt: now,
+        }),
+      ),
+      wasDuplicate: true,
+    };
+  }
+
   return {
     async save(draft) {
       const sourceUrl = canonicalizeSourceUrl(draft.sourceUrl);
       const existing = sourceUrl
         ? await store.findBySource(draft.householdId, sourceUrl)
         : null;
-      if (existing?.archivedAt) {
-        const now = new Date().toISOString();
-        return {
-          recipe: requireRecipe(
-            await store.update(draft.householdId, existing.id, {
-              archivedAt: null,
-              updatedAt: now,
-            }),
-          ),
-          wasDuplicate: true,
-        };
-      }
+      if (existing?.archivedAt) return restoreArchivedDuplicate(existing);
       if (existing) return { recipe: existing, wasDuplicate: true };
 
       requireRecipeContent(draft);
@@ -125,17 +131,15 @@ export function createRecipeLibrary(store: RecipeStore): RecipeLibrary {
         if (winner.archivedAt === null) {
           return { recipe: winner, wasDuplicate: true };
         }
-        const restoredAt = new Date().toISOString();
-        return {
-          recipe: requireRecipe(
-            await store.update(draft.householdId, winner.id, {
-              archivedAt: null,
-              updatedAt: restoredAt,
-            }),
-          ),
-          wasDuplicate: true,
-        };
+        return restoreArchivedDuplicate(winner);
       }
+    },
+
+    async findBySource({ householdId, sourceUrl }) {
+      const canonicalUrl = canonicalizeSourceUrl(sourceUrl);
+      return canonicalUrl
+        ? store.findBySource(householdId, canonicalUrl)
+        : null;
     },
 
     async search({ householdId, query }) {
