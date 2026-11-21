@@ -237,7 +237,10 @@ export function RecipeBuilder({
                   <div>
                     <p className="eyebrow">IMPORT A RECIPE</p>
                     <h2 id="import-title">Import from a webpage</h2>
-                    <p>Paste a webpage URL to extract the recipe details.</p>
+                    <p>
+                      Paste a recipe URL. We’ll skip page clutter, using AI when the
+                      page doesn’t provide recipe data.
+                    </p>
                   </div>
                 </div>
                 <form className="capture-form" onSubmit={extractRecipe}>
@@ -259,7 +262,7 @@ export function RecipeBuilder({
                     required
                   />
                   <button className="button" type="submit" disabled={extracting}>
-                    {extracting ? "Reading page…" : "Find recipe"}
+                    {extracting ? "Extracting recipe…" : "Find recipe"}
                   </button>
                 </form>
                 {sourceCheckError && !draft && (

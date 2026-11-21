@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createRecipeExtractor } from "./recipe-extractor";
 
 describe("RecipeExtractor", () => {
@@ -42,5 +42,64 @@ describe("RecipeExtractor", () => {
       recipe: null,
       warning: "No structured recipe was found. Enter the recipe details manually.",
     });
+  });
+
+  it("uses AI on cleaned page text when structured recipe data is missing", async () => {
+    const extractWithAi = vi.fn(async (pageText: string) => {
+      expect(pageText).toContain("Weeknight tomato pasta");
+      expect(pageText).toContain("Boil the pasta.");
+      expect(pageText).not.toContain("Buy our cookware");
+      expect(pageText).not.toContain("tracking script");
+      return {
+        title: "Weeknight tomato pasta",
+        ingredients: ["200 g pasta", "1 can tomatoes"],
+        method: ["Boil the pasta.", "Simmer the tomatoes and combine."],
+      };
+    });
+    const extractor = createRecipeExtractor(
+      async () => `<!doctype html><html><body>
+        <nav>Buy our cookware</nav>
+        <article>
+          <h1>Weeknight tomato pasta</h1>
+          <p>200 g pasta</p>
+          <p>1 can tomatoes</p>
+          <p>Boil the pasta.</p>
+        </article>
+        <script>tracking script</script>
+      </body></html>`,
+      extractWithAi,
+    );
+
+    await expect(
+      extractor.extract("https://example.com/tomato-pasta"),
+    ).resolves.toEqual({
+      recipe: {
+        title: "Weeknight tomato pasta",
+        ingredients: ["200 g pasta", "1 can tomatoes"],
+        method: ["Boil the pasta.", "Simmer the tomatoes and combine."],
+        sourceUrl: "https://example.com/tomato-pasta",
+      },
+      warning: null,
+    });
+    expect(extractWithAi).toHaveBeenCalledOnce();
+  });
+
+  it("does not call AI when structured recipe data is already complete", async () => {
+    const extractWithAi = vi.fn();
+    const extractor = createRecipeExtractor(
+      async () => `<script type="application/ld+json">
+        {
+          "@type": "Recipe",
+          "name": "Quick soup",
+          "recipeIngredient": ["1 cup broth"],
+          "recipeInstructions": ["Heat the broth."]
+        }
+      </script>`,
+      extractWithAi,
+    );
+
+    await extractor.extract("https://example.com/quick-soup");
+
+    expect(extractWithAi).not.toHaveBeenCalled();
   });
 });

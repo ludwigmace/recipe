@@ -17,6 +17,9 @@ export interface RecipeExtractor {
 }
 
 export type PageFetcher = (url: string) => Promise<string>;
+export type AiRecipeExtractor = (
+  pageText: string,
+) => Promise<Omit<ExtractedRecipe, "sourceUrl"> | null>;
 
 const noRecipeWarning =
   "No structured recipe was found. Enter the recipe details manually.";
@@ -94,12 +97,67 @@ function findRecipe(html: string, sourceUrl: string): ExtractedRecipe | null {
   return null;
 }
 
-export function createRecipeExtractor(fetchPage: PageFetcher): RecipeExtractor {
+function pageTextWithoutClutter(html: string): string {
+  const $ = load(html);
+  $(
+    "script, style, noscript, svg, iframe, nav, header, footer, aside, form, " +
+      '[data-ad], [class~="ad"], [id^="ad-"], [class*="advert" i], ' +
+      '[id*="advert" i], [class*="sponsor" i], [class*="promo" i], ' +
+      '[class*="newsletter" i], [class*="cookie" i], [class*="social" i], ' +
+      '[class*="share" i], [class*="comment" i], [class*="related" i]',
+  ).remove();
+
+  const article = $("article").first();
+  const main = $("main").first();
+  const content = article.length ? article : main.length ? main : $("body");
+  const lines = content
+    .find("h1, h2, h3, p, li")
+    .toArray()
+    .map((element) => text($(element).text()))
+    .filter((line): line is string => line !== null);
+  const extracted = lines.length ? lines.join("\n") : text(content.text()) ?? "";
+  return extracted.slice(0, 20_000);
+}
+
+function isComplete(recipe: Omit<ExtractedRecipe, "sourceUrl">): boolean {
+  return Boolean(
+    recipe.title.trim() &&
+      recipe.ingredients.some((ingredient) => ingredient.trim()) &&
+      recipe.method.some((step) => step.trim()),
+  );
+}
+
+export function createRecipeExtractor(
+  fetchPage: PageFetcher,
+  extractWithAi?: AiRecipeExtractor,
+): RecipeExtractor {
   return {
     async extract(sourceUrl) {
-      const recipe = findRecipe(await fetchPage(sourceUrl), sourceUrl);
-      return recipe
-        ? { recipe, warning: null }
+      const html = await fetchPage(sourceUrl);
+      const structuredRecipe = findRecipe(html, sourceUrl);
+      if (
+        structuredRecipe &&
+        isComplete({
+          title: structuredRecipe.title,
+          ingredients: structuredRecipe.ingredients,
+          method: structuredRecipe.method,
+        })
+      ) {
+        return { recipe: structuredRecipe, warning: null };
+      }
+
+      if (extractWithAi) {
+        const aiRecipe = await extractWithAi(pageTextWithoutClutter(html));
+        if (aiRecipe && isComplete(aiRecipe)) {
+          return {
+            recipe: { ...aiRecipe, sourceUrl },
+            warning: null,
+          };
+        }
+      }
+
+      return structuredRecipe
+        ? { recipe: structuredRecipe, warning: noRecipeWarning }
         : { recipe: null, warning: noRecipeWarning };
     },
   };

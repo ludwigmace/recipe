@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { createLlmRecipeExtractor } from "@/lib/llm-recipe-extractor";
 import { createRecipeExtractor } from "@/lib/recipe-extractor";
 import { createSafePageFetcher } from "@/lib/safe-page-fetcher";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
-export const maxDuration = 30;
+export const maxDuration = 120;
 
 const requestSchema = z.object({
   sourceUrl: z.string().url().max(2048),
@@ -52,7 +53,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const extractor = createRecipeExtractor(createSafePageFetcher());
+    const extractor = createRecipeExtractor(
+      createSafePageFetcher(),
+      createLlmRecipeExtractor(),
+    );
     const result = await extractor.extract(parsed.data.sourceUrl);
     return NextResponse.json(result);
   } catch {
