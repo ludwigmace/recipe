@@ -82,6 +82,24 @@ export async function createHouseholdAction(
   return { message: "Household created." };
 }
 
+export async function renameHouseholdAction(
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const householdId = field(formData, "householdId");
+  const name = field(formData, "name");
+  const client = await createSupabaseServerClient();
+  if (!(await currentUser(client))) return { error: "Sign in before renaming a household." };
+
+  const { error } = await client.rpc("rename_household", {
+    p_household_id: householdId,
+    p_name: name,
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/");
+  return { message: "Household name updated." };
+}
+
 export async function createInviteAction(
   _previous: ActionState,
   formData: FormData,

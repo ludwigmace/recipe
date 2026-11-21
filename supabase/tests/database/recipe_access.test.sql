@@ -2,7 +2,7 @@ create extension if not exists pgtap with schema extensions;
 
 begin;
 
-select plan(7);
+select plan(11);
 
 insert into auth.users (
   id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at
@@ -31,12 +31,12 @@ insert into auth.users (
 insert into public.households (id, name, created_by) values
   (
     '10000000-0000-4000-8000-000000000001',
-    'Household A',
+    'household a',
     '00000000-0000-4000-8000-000000000001'
   ),
   (
     '10000000-0000-4000-8000-000000000002',
-    'Household B',
+    'household b',
     '00000000-0000-4000-8000-000000000002'
   );
 
@@ -139,6 +139,23 @@ select is(
   1,
   'a household member sees only their household'
 );
+select is(
+  public.rename_household(
+    '10000000-0000-4000-8000-000000000001',
+    'My Kitchen'
+  ),
+  'my kitchen',
+  'a household member can rename their household in lowercase'
+);
+select is(
+  (
+    select name
+    from public.households
+    where id = '10000000-0000-4000-8000-000000000001'
+  ),
+  'my kitchen',
+  'the renamed household name is stored lowercase'
+);
 
 select set_config(
   'request.jwt.claims',
@@ -155,6 +172,38 @@ select is(
   (select count(*)::integer from public.households),
   1,
   'another household member sees only their own household'
+);
+select throws_ok(
+  $$
+    select public.rename_household(
+      '10000000-0000-4000-8000-000000000001',
+      'Not Yours'
+    )
+  $$,
+  'P0001',
+  'Household membership required',
+  'a non-member cannot rename another household'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',
+  true
+);
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001', true);
+select set_config(
+  'test.new_household_id',
+  public.create_household('New Kitchen')::text,
+  true
+);
+select is(
+  (
+    select name
+    from public.households
+    where id = current_setting('test.new_household_id')::uuid
+  ),
+  'new kitchen',
+  'new household names are stored lowercase'
 );
 
 select * from finish();

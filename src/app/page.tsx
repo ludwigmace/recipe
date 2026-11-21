@@ -3,6 +3,7 @@ import { AuthPanel } from "@/components/auth-panel";
 import { HouseholdSetup } from "@/components/household-setup";
 import { InviteAcceptance } from "@/components/invite-acceptance";
 import { InvitePanel } from "@/components/invite-panel";
+import { HouseholdNameForm } from "@/components/household-name-form";
 import { HouseholdSwitcher } from "@/components/household-switcher";
 import { RecipeCollection } from "@/components/recipe-collection";
 import { signOutAction } from "@/app/actions";
@@ -70,7 +71,13 @@ export default async function Home({ searchParams }: PageProps) {
           recipe
         </Link>
         <div className="topbar-household">
-          <h1>{household.name}</h1>
+          <div className="household-title-row">
+            <h1>{household.name}</h1>
+            <HouseholdNameForm
+              householdId={household.id}
+              householdName={household.name}
+            />
+          </div>
           {households.length > 1 && (
             <HouseholdSwitcher households={households} selectedId={household.id} />
           )}

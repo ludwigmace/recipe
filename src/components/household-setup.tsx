@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { createHouseholdAction } from "@/app/actions";
 
 export function HouseholdSetup() {
   const [state, action, pending] = useActionState(createHouseholdAction, {});
+  const [name, setName] = useState("");
 
   return (
     <main className="setup-shell">
@@ -18,7 +19,14 @@ export function HouseholdSetup() {
         <form className="household-form" action={action}>
           <label>
             Household name
-            <input name="name" placeholder="The Mace kitchen" maxLength={80} required />
+            <input
+              name="name"
+              placeholder="the mace kitchen"
+              value={name}
+              onChange={(event) => setName(event.target.value.toLowerCase())}
+              maxLength={80}
+              required
+            />
           </label>
           <button className="button" type="submit" disabled={pending}>
             {pending ? "Creating…" : "Create household"}
