@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { saveRecipeAction } from "@/app/actions";
 import type { ActionState } from "@/lib/action-state";
 import type { RecipeExtraction } from "@/lib/recipe-extractor";
@@ -15,6 +16,10 @@ interface Draft {
 
 type EntryPath = "import" | "manual";
 
+function emptyDraft(sourceUrl: string | null): Draft {
+  return { title: "", ingredients: [], method: [], sourceUrl };
+}
+
 export function RecipeBuilder({
   householdId,
   householdName,
@@ -23,6 +28,7 @@ export function RecipeBuilder({
   householdName: string;
 }) {
   const libraryUrl = `/?household=${encodeURIComponent(householdId)}`;
+  const router = useRouter();
   const [entryPath, setEntryPath] = useState<EntryPath | null>(null);
   const [url, setUrl] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -82,9 +88,18 @@ export function RecipeBuilder({
     setExtractError("");
   }
 
+  function cancelToLibrary() {
+    if (!confirmLeave()) return;
+    router.push(libraryUrl);
+  }
+
+  function openExistingRecipe() {
+    dirtyRef.current = false;
+  }
+
   function startManualEntry() {
     setEntryPath("manual");
-    setDraft({ title: "", ingredients: [], method: [], sourceUrl: null });
+    setDraft(emptyDraft(null));
   }
 
   async function extractRecipe(event: React.FormEvent<HTMLFormElement>) {
@@ -104,18 +119,11 @@ export function RecipeBuilder({
         throw new Error(result.warning ?? "Could not read that recipe page.");
       }
 
-      setDraft(
-        result.recipe ?? {
-          title: "",
-          ingredients: [],
-          method: [],
-          sourceUrl: url,
-        },
-      );
+      setDraft(result.recipe ?? emptyDraft(url));
       setWarning(result.warning ?? "");
       markDirty();
     } catch (error) {
-      setDraft({ title: "", ingredients: [], method: [], sourceUrl: url });
+      setDraft(emptyDraft(url));
       setExtractError(
         error instanceof Error
           ? error.message
@@ -221,10 +229,8 @@ export function RecipeBuilder({
                     householdId={householdId}
                     warning={warning}
                     onChange={updateDraft}
-                    onCancel={cancelEntry}
-                    onOpenExisting={() => {
-                      dirtyRef.current = false;
-                    }}
+                    onCancel={cancelToLibrary}
+                    onOpenExisting={openExistingRecipe}
                   />
                 )}
               </section>
@@ -240,10 +246,8 @@ export function RecipeBuilder({
                   entryPath="manual"
                   householdId={householdId}
                   onChange={updateDraft}
-                  onCancel={cancelEntry}
-                  onOpenExisting={() => {
-                    dirtyRef.current = false;
-                  }}
+                  onCancel={cancelToLibrary}
+                  onOpenExisting={openExistingRecipe}
                 />
               </section>
             )}
