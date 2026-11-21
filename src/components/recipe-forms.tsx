@@ -60,9 +60,11 @@ export function RestoreRecipeForm({
 export function EditRecipeForm({
   householdId,
   recipe,
+  availableBadges,
 }: {
   householdId: string;
   recipe: Recipe;
+  availableBadges: string[];
 }) {
   const [state, action, pending] = useActionState(editRecipeAction, {});
 
@@ -84,6 +86,22 @@ export function EditRecipeForm({
           <textarea name="method" defaultValue={recipe.method.join("\n")} required />
         </label>
       </div>
+      <fieldset className="badge-picker">
+        <legend>Badges <span className="field-note">Optional; choose any that fit</span></legend>
+        <div className="badge-options">
+          {availableBadges.map((badge) => (
+            <label key={badge}>
+              <input
+                type="checkbox"
+                name="badge"
+                value={badge}
+                defaultChecked={recipe.badges.includes(badge)}
+              />
+              <span>{badge}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
       <button className="button button-small" type="submit" disabled={pending}>
         {pending ? "Saving…" : "Save correction"}
       </button>

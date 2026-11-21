@@ -5,6 +5,8 @@ import {
   EditRecipeForm,
   RestoreRecipeForm,
 } from "@/components/recipe-forms";
+import { RecipeBadges } from "@/components/recipe-badges";
+import { RecipeSourceLink } from "@/components/recipe-source-link";
 import { createRecipeLibrary } from "@/lib/recipe-library";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -36,7 +38,7 @@ export default async function RecipePage({ params, searchParams }: PageProps) {
     : householdIds[0];
   const { data: household, error: householdError } = await client
     .from("households")
-    .select("id, name")
+    .select("id, name, available_badges")
     .eq("id", householdId)
     .maybeSingle();
   if (householdError || !household) notFound();
@@ -52,11 +54,8 @@ export default async function RecipePage({ params, searchParams }: PageProps) {
     <main className="page-shell">
       <header className="topbar">
         <Link className="wordmark" href={libraryUrl}>
-          RecipeRepo
+          {household.name}
         </Link>
-        <div className="topbar-household">
-          <span>{household.name}</span>
-        </div>
         <div className="topbar-actions">
           <Link className="member-email" href={settingsUrl}>
             {auth.user.email ?? "Account settings"}
@@ -65,21 +64,21 @@ export default async function RecipePage({ params, searchParams }: PageProps) {
       </header>
 
       <article className="recipe-detail">
-        <Link className="recipe-back-link" href={libraryUrl}>← Recipes</Link>
         <header className="recipe-detail-heading">
-          <span className="pill">
-            {recipe.archivedAt ? "Archived recipe" : "Household recipe"}
-          </span>
+          {recipe.archivedAt && <span className="pill">Archived recipe</span>}
           <h1>{recipe.title}</h1>
           {recipe.sourceUrl && (
             <p className="recipe-detail-source">
-              Source URL:{" "}
-              <a href={recipe.sourceUrl} target="_blank" rel="noreferrer">
-                {recipe.sourceUrl}
-              </a>
+              <RecipeSourceLink sourceUrl={recipe.sourceUrl} />
             </p>
           )}
         </header>
+
+        <RecipeBadges
+          householdId={household.id}
+          recipe={recipe}
+          availableBadges={(household.available_badges as string[]) ?? []}
+        />
 
         <div className="recipe-detail-columns">
           <section aria-labelledby="ingredients-title">
@@ -112,7 +111,11 @@ export default async function RecipePage({ params, searchParams }: PageProps) {
           )}
           <details className="edit-details">
             <summary>Correct this recipe</summary>
-            <EditRecipeForm householdId={household.id} recipe={recipe} />
+            <EditRecipeForm
+              householdId={household.id}
+              recipe={recipe}
+              availableBadges={(household.available_badges as string[]) ?? []}
+            />
           </details>
         </div>
       </article>

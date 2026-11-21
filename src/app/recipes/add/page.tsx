@@ -28,7 +28,7 @@ export default async function AddRecipePage({ searchParams }: PageProps) {
     : householdIds[0];
   const { data: household, error: householdError } = await client
     .from("households")
-    .select("id, name")
+    .select("id, name, available_badges")
     .eq("id", selectedId)
     .maybeSingle();
   if (householdError || !household) redirect("/");
@@ -38,6 +38,7 @@ export default async function AddRecipePage({ searchParams }: PageProps) {
       householdId={household.id}
       householdName={household.name}
       memberEmail={auth.user.email ?? ""}
+      availableBadges={(household.available_badges as string[]) ?? []}
     />
   );
 }

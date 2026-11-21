@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signOutAction } from "@/app/actions";
 import { AccountSettings } from "@/components/account-settings";
+import { BadgeSettings } from "@/components/badge-settings";
 import { HouseholdNameForm } from "@/components/household-name-form";
 import { HouseholdSwitcher } from "@/components/household-switcher";
 import { InvitePanel } from "@/components/invite-panel";
@@ -31,7 +32,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
   const householdIds = memberships.map((membership) => membership.household_id);
   const { data: households, error: householdError } = await client
     .from("households")
-    .select("id, name")
+    .select("id, name, available_badges")
     .in("id", householdIds)
     .order("name", { ascending: true });
   if (householdError || !households?.length) redirect("/");
@@ -43,18 +44,17 @@ export default async function SettingsPage({ searchParams }: PageProps) {
     <main className="page-shell">
       <header className="topbar">
         <Link className="wordmark" href={libraryUrl}>
-          RecipeRepo
+          {household.name}
         </Link>
-        <div className="topbar-household">
-          <h1>{household.name}</h1>
-          {households.length > 1 && (
+        {households.length > 1 && (
+          <div className="topbar-household">
             <HouseholdSwitcher
               households={households}
               selectedId={household.id}
               pathname="/settings"
             />
-          )}
-        </div>
+          </div>
+        )}
         <div className="topbar-actions">
           <span className="member-email">{user.email}</span>
           <form action={signOutAction}>
@@ -81,6 +81,14 @@ export default async function SettingsPage({ searchParams }: PageProps) {
               key={`${household.id}-${household.name}`}
               householdId={household.id}
               householdName={household.name}
+            />
+          </section>
+          <section className="settings-panel" aria-labelledby="badge-settings-title">
+            <h2 id="badge-settings-title">Recipe badges</h2>
+            <BadgeSettings
+              key={household.id}
+              householdId={household.id}
+              availableBadges={(household.available_badges as string[]) ?? []}
             />
           </section>
           <section className="settings-panel" aria-labelledby="invite-settings-title">

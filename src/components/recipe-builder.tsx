@@ -24,10 +24,12 @@ export function RecipeBuilder({
   householdId,
   householdName,
   memberEmail,
+  availableBadges,
 }: {
   householdId: string;
   householdName: string;
   memberEmail: string;
+  availableBadges: string[];
 }) {
   const libraryUrl = `/?household=${encodeURIComponent(householdId)}`;
   const settingsUrl = `/settings?household=${encodeURIComponent(householdId)}`;
@@ -194,11 +196,8 @@ export function RecipeBuilder({
             if (!confirmLeave()) event.preventDefault();
           }}
         >
-          RecipeRepo
+          {householdName}
         </Link>
-        <div className="topbar-household">
-          <span>{householdName}</span>
-        </div>
         <div className="topbar-actions">
           <Link className="member-email" href={settingsUrl}>
             {memberEmail || "Account settings"}
@@ -285,10 +284,12 @@ export function RecipeBuilder({
                     draft={draft}
                     entryPath="import"
                     householdId={householdId}
+                    availableBadges={availableBadges}
                     warning={warning}
                     existingRecipe={existingRecipe}
                     sourceCheckError={sourceCheckError}
                     onChange={updateDraft}
+                    onDirty={markDirty}
                     onSourceBlur={checkExistingSource}
                     onCancel={cancelToLibrary}
                     onOpenExisting={openExistingRecipe}
@@ -306,9 +307,11 @@ export function RecipeBuilder({
                   draft={draft}
                   entryPath="manual"
                   householdId={householdId}
+                  availableBadges={availableBadges}
                   existingRecipe={existingRecipe}
                   sourceCheckError={sourceCheckError}
                   onChange={updateDraft}
+                  onDirty={markDirty}
                   onSourceBlur={checkExistingSource}
                   onCancel={cancelToLibrary}
                   onOpenExisting={openExistingRecipe}
@@ -326,10 +329,12 @@ function RecipeEditor({
   draft,
   entryPath,
   householdId,
+  availableBadges,
   warning,
   existingRecipe,
   sourceCheckError,
   onChange,
+  onDirty,
   onSourceBlur,
   onCancel,
   onOpenExisting,
@@ -337,10 +342,12 @@ function RecipeEditor({
   draft: Draft;
   entryPath: EntryPath;
   householdId: string;
+  availableBadges: string[];
   warning?: string;
   existingRecipe: ExistingRecipeSummary | null;
   sourceCheckError: string;
   onChange: (key: keyof Draft, value: string) => void;
+  onDirty: () => void;
   onSourceBlur: (sourceUrl: string) => void;
   onCancel: () => void;
   onOpenExisting: () => void;
@@ -418,6 +425,22 @@ function RecipeEditor({
           </label>
         )
       )}
+      <fieldset className="badge-picker">
+        <legend>Badges <span className="field-note">Optional; choose any that fit</span></legend>
+        <div className="badge-options">
+          {availableBadges.map((badge) => (
+            <label key={badge}>
+              <input
+                type="checkbox"
+                name="badge"
+                value={badge}
+                onChange={onDirty}
+              />
+              <span>{badge}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
       <div className="editor-actions">
         <button className="button" type="submit" disabled={saving}>
           {saving ? "Saving…" : "Save to household"}

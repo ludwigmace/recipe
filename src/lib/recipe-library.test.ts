@@ -73,6 +73,57 @@ describe("RecipeLibrary", () => {
     });
 
     expect(saved.sourceUrl).toBeNull();
+    expect(saved.badges).toEqual([]);
+  });
+
+  it("saves and edits multiple recipe badges", async () => {
+    const library = createRecipeLibrary(createMemoryStore());
+    const { recipe } = await library.save({
+      householdId: "home-1",
+      actorId: "member-1",
+      title: "Tomato Soup",
+      ingredients: ["tomatoes"],
+      method: ["Simmer"],
+      sourceUrl: null,
+      badges: ["soup", "dinner"],
+    });
+
+    const edited = await library.edit({
+      householdId: "home-1",
+      recipeId: recipe.id,
+      title: "Tomato Soup",
+      ingredients: ["tomatoes"],
+      method: ["Simmer"],
+      badges: ["lunch", "soup", "soup"],
+    });
+
+    expect(recipe.badges).toEqual(["soup", "dinner"]);
+    expect(edited.badges).toEqual(["lunch", "soup"]);
+  });
+
+  it("updates recipe badges without editing recipe content", async () => {
+    const library = createRecipeLibrary(createMemoryStore());
+    const { recipe } = await library.save({
+      householdId: "home-1",
+      actorId: "member-1",
+      title: "Tomato Soup",
+      ingredients: ["tomatoes"],
+      method: ["Simmer"],
+      sourceUrl: null,
+    });
+
+    const updated = await library.setBadges({
+      householdId: "home-1",
+      recipeId: recipe.id,
+      badges: ["dinner", "soup"],
+    });
+
+    expect(updated).toMatchObject({
+      title: recipe.title,
+      ingredients: recipe.ingredients,
+      method: recipe.method,
+      badges: ["dinner", "soup"],
+    });
   });
 
   it("requires an HTTP or HTTPS URL when a source is provided", async () => {

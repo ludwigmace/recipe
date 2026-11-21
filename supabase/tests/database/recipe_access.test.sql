@@ -2,7 +2,7 @@ create extension if not exists pgtap with schema extensions;
 
 begin;
 
-select plan(11);
+select plan(13);
 
 insert into auth.users (
   id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at
@@ -156,6 +156,14 @@ select is(
   'my kitchen',
   'the renamed household name is stored lowercase'
 );
+select is(
+  public.update_household_badges(
+    '10000000-0000-4000-8000-000000000001',
+    array['Soup', 'dinner', 'soup']
+  ),
+  array['dinner', 'soup']::text[],
+  'household members can manage normalized badge options'
+);
 
 select set_config(
   'request.jwt.claims',
@@ -183,6 +191,17 @@ select throws_ok(
   'P0001',
   'Household membership required',
   'a non-member cannot rename another household'
+);
+select throws_ok(
+  $$
+    select public.update_household_badges(
+      '10000000-0000-4000-8000-000000000001',
+      array['private']
+    )
+  $$,
+  'P0001',
+  'Household membership required',
+  'a non-member cannot manage another household badges'
 );
 
 select set_config(

@@ -22,6 +22,35 @@ function lines(value: string): string[] {
     .filter(Boolean);
 }
 
+function selectedBadges(formData: FormData): string[] {
+  return [...new Set(
+    formData.getAll("badge")
+      .map((badge) => String(badge).trim().toLowerCase())
+      .filter(Boolean),
+  )];
+}
+
+async function validateRecipeBadges(
+  client: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  householdId: string,
+  badges: string[],
+  alreadyAssigned: string[] = [],
+): Promise<string | null> {
+  const { data, error } = await client
+    .from("households")
+    .select("available_badges")
+    .eq("id", householdId)
+    .maybeSingle();
+  if (error || !data) return "Could not load the household’s available badges.";
+  const allowed = new Set([
+    ...((data.available_badges as string[]) ?? []),
+    ...alreadyAssigned,
+  ]);
+  return badges.every((badge) => allowed.has(badge))
+    ? null
+    : "Choose badges from the available list in Settings.";
+}
+
 async function siteUrl(): Promise<string> {
   return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 }
@@ -102,6 +131,32 @@ export async function renameHouseholdAction(
   if (error) return { error: error.message };
   revalidatePath("/");
   return { message: "Household name updated." };
+}
+
+export async function updateHouseholdBadgesAction(
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const householdId = field(formData, "householdId");
+  const availableBadges = lines(field(formData, "badges"))
+    .map((badge) => badge.toLowerCase())
+    .filter((badge, index, all) => all.indexOf(badge) === index);
+  if (availableBadges.length > 40) return { error: "Use at most 40 badges." };
+  if (availableBadges.some((badge) => badge.length > 32)) {
+    return { error: "Each badge must be 32 characters or fewer." };
+  }
+
+  const client = await createSupabaseServerClient();
+  if (!(await currentUser(client))) return { error: "Sign in before managing badges." };
+
+  const { error } = await client.rpc("update_household_badges", {
+    p_household_id: householdId,
+    p_badges: availableBadges,
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/");
+  revalidatePath("/settings");
+  return { message: "Available badges updated." };
 }
 
 export async function updateAccountEmailAction(
@@ -193,6 +248,10 @@ export async function saveRecipeAction(
   const user = await currentUser(client);
   if (!user) return { error: "Sign in before saving a recipe." };
 
+  const badges = selectedBadges(formData);
+  const badgeError = await validateRecipeBadges(client, householdId, badges);
+  if (badgeError) return { error: badgeError };
+
   let saved: Recipe;
   try {
     const library = createRecipeLibrary(createSupabaseRecipeStore(client));
@@ -203,6 +262,7 @@ export async function saveRecipeAction(
       ingredients: lines(field(formData, "ingredients")),
       method: lines(field(formData, "method")),
       sourceUrl: field(formData, "sourceUrl") || null,
+      badges,
     };
     const result = await library.save(draft);
     if (result.wasDuplicate) {
@@ -221,6 +281,39 @@ export async function saveRecipeAction(
   }
   revalidatePath("/");
   redirect(`/?household=${encodeURIComponent(householdId)}#recipe-${saved.id}`);
+}
+
+export async function updateRecipeBadgesAction(
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const client = await createSupabaseServerClient();
+  if (!(await currentUser(client))) return { error: "Sign in before updating recipe badges." };
+
+  const householdId = field(formData, "householdId");
+  const recipeId = field(formData, "recipeId");
+  const badges = selectedBadges(formData);
+  const library = createRecipeLibrary(createSupabaseRecipeStore(client));
+
+  try {
+    const current = await library.findById({ householdId, recipeId });
+    if (!current) return { error: "Recipe not found." };
+    const badgeError = await validateRecipeBadges(
+      client,
+      householdId,
+      badges,
+      current.badges,
+    );
+    if (badgeError) return { error: badgeError };
+
+    await library.setBadges({ householdId, recipeId, badges });
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not update recipe badges." };
+  }
+
+  revalidatePath("/");
+  revalidatePath(`/recipes/${encodeURIComponent(recipeId)}`);
+  return { message: "Recipe badges updated." };
 }
 
 export async function findRecipeBySourceAction(
@@ -247,15 +340,20 @@ export async function editRecipeAction(
 ): Promise<ActionState> {
   const client = await createSupabaseServerClient();
   if (!(await currentUser(client))) return { error: "Sign in before editing a recipe." };
+  const householdId = field(formData, "householdId");
+  const badges = selectedBadges(formData);
+  const badgeError = await validateRecipeBadges(client, householdId, badges);
+  if (badgeError) return { error: badgeError };
 
   try {
     const library = createRecipeLibrary(createSupabaseRecipeStore(client));
     await library.edit({
-      householdId: field(formData, "householdId"),
+      householdId,
       recipeId: field(formData, "recipeId"),
       title: field(formData, "title"),
       ingredients: lines(field(formData, "ingredients")),
       method: lines(field(formData, "method")),
+      badges,
     });
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not update the recipe." };

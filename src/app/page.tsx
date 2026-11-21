@@ -44,7 +44,7 @@ export default async function Home({ searchParams }: PageProps) {
 
   const { data: households, error: householdError } = await client
     .from("households")
-    .select("id, name")
+    .select("id, name, available_badges")
     .in("id", householdIds)
     .order("name", { ascending: true });
   const household = households?.find((item) => item.id === selectedId);
@@ -54,7 +54,7 @@ export default async function Home({ searchParams }: PageProps) {
 
   const library = createRecipeLibrary(createSupabaseRecipeStore(client));
   const [recipes, archivedRecipes] = await Promise.all([
-    library.search({ householdId: household.id, query: params.q ?? "" }),
+    library.search({ householdId: household.id, query: "" }),
     library.listArchived({ householdId: household.id }),
   ]);
 
@@ -65,10 +65,15 @@ export default async function Home({ searchParams }: PageProps) {
           className="wordmark"
           href={`/?household=${encodeURIComponent(household.id)}`}
         >
-          RecipeRepo
+          {household.name}
         </Link>
-        <div className="topbar-household">
-          <h1>{household.name}</h1>
+        <div className="topbar-center">
+          <Link
+            className="button button-small button-add-recipe"
+            href={`/recipes/add?household=${encodeURIComponent(household.id)}`}
+          >
+            Add Recipe
+          </Link>
           {households.length > 1 && (
             <HouseholdSwitcher households={households} selectedId={household.id} />
           )}
@@ -88,29 +93,10 @@ export default async function Home({ searchParams }: PageProps) {
         </div>
       </header>
 
-      <div className="library-toolbar">
-        <Link
-          className="button button-small"
-          href={`/recipes/add?household=${encodeURIComponent(household.id)}`}
-        >
-          Add Recipe
-        </Link>
-        <form className="search-form" action="/" method="get" role="search">
-          <label className="sr-only" htmlFor="recipe-search">Search recipes</label>
-          <input
-            id="recipe-search"
-            name="q"
-            type="search"
-            placeholder="Search recipes"
-            defaultValue={params.q ?? ""}
-          />
-          <input type="hidden" name="household" value={household.id} />
-          <button className="button button-small" type="submit">Search</button>
-        </form>
-      </div>
-
       <RecipeCollection
+        key={`${household.id}-${params.q ?? ""}`}
         householdId={household.id}
+        availableBadges={(household.available_badges as string[]) ?? []}
         recipes={recipes}
         archivedRecipes={archivedRecipes}
         query={params.q ?? ""}

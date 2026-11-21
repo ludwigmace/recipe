@@ -9,6 +9,7 @@ interface RecipeRow {
   ingredients: string[];
   method: string[];
   source_url: string | null;
+  badges: string[] | null;
   archived_at: string | null;
   created_at: string;
   updated_at: string;
@@ -23,6 +24,7 @@ function fromRow(row: RecipeRow): Recipe {
     ingredients: row.ingredients,
     method: row.method,
     sourceUrl: row.source_url,
+    badges: row.badges ?? [],
     archivedAt: row.archived_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -94,6 +96,7 @@ export function createSupabaseRecipeStore(client: SupabaseClient): RecipeStore {
           ingredients: recipe.ingredients,
           method: recipe.method,
           source_url: recipe.sourceUrl,
+          badges: recipe.badges ?? [],
         })
         .select("*")
         .single();
@@ -106,6 +109,7 @@ export function createSupabaseRecipeStore(client: SupabaseClient): RecipeStore {
       if (changes.title !== undefined) update.title = changes.title;
       if (changes.ingredients !== undefined) update.ingredients = changes.ingredients;
       if (changes.method !== undefined) update.method = changes.method;
+      if (changes.badges !== undefined) update.badges = changes.badges;
       if (changes.archivedAt !== undefined) update.archived_at = changes.archivedAt;
 
       const { data, error } = await client

@@ -5,9 +5,11 @@ export interface RecipeDraft {
   ingredients: string[];
   method: string[];
   sourceUrl: string | null;
+  badges?: string[];
 }
 
 export interface Recipe extends RecipeDraft {
+  badges: string[];
   id: string;
   archivedAt: string | null;
   createdAt: string;
@@ -24,7 +26,7 @@ export interface RecipeStore {
     householdId: string,
     recipeId: string,
     changes: Partial<
-      Pick<Recipe, "title" | "ingredients" | "method" | "archivedAt" | "updatedAt">
+      Pick<Recipe, "title" | "ingredients" | "method" | "badges" | "archivedAt" | "updatedAt">
     >,
   ): Promise<Recipe | null>;
 }
@@ -45,12 +47,18 @@ export interface RecipeLibrary {
   listArchived(input: { householdId: string }): Promise<Recipe[]>;
   archive(input: { householdId: string; recipeId: string }): Promise<Recipe>;
   restore(input: { householdId: string; recipeId: string }): Promise<Recipe>;
+  setBadges(input: {
+    householdId: string;
+    recipeId: string;
+    badges: string[];
+  }): Promise<Recipe>;
   edit(input: {
     householdId: string;
     recipeId: string;
     title: string;
     ingredients: string[];
     method: string[];
+    badges?: string[];
   }): Promise<Recipe>;
 }
 
@@ -119,6 +127,7 @@ export function createRecipeLibrary(store: RecipeStore): RecipeLibrary {
         ...draft,
         id: crypto.randomUUID(),
         sourceUrl,
+        badges: draft.badges ?? [],
         archivedAt: null,
         createdAt: now,
         updatedAt: now,
@@ -177,7 +186,18 @@ export function createRecipeLibrary(store: RecipeStore): RecipeLibrary {
       );
     },
 
-    async edit({ householdId, recipeId, title, ingredients, method }) {
+    async setBadges({ householdId, recipeId, badges }) {
+      requireRecipe(await store.findById(householdId, recipeId));
+      const now = new Date().toISOString();
+      return requireRecipe(
+        await store.update(householdId, recipeId, {
+          badges: [...new Set(badges.map((badge) => badge.trim().toLowerCase()))],
+          updatedAt: now,
+        }),
+      );
+    },
+
+    async edit({ householdId, recipeId, title, ingredients, method, badges }) {
       requireRecipe(await store.findById(householdId, recipeId));
       requireRecipeContent({ title, ingredients, method });
       const now = new Date().toISOString();
@@ -186,6 +206,9 @@ export function createRecipeLibrary(store: RecipeStore): RecipeLibrary {
           title: title.trim(),
           ingredients: ingredients.map((item) => item.trim()).filter(Boolean),
           method: method.map((step) => step.trim()).filter(Boolean),
+          ...(badges !== undefined && {
+            badges: [...new Set(badges.map((badge) => badge.trim().toLowerCase()))],
+          }),
           updatedAt: now,
         }),
       );
