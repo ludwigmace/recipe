@@ -123,14 +123,25 @@ export async function saveRecipeAction(
   let saved: Recipe;
   try {
     const library = createRecipeLibrary(createSupabaseRecipeStore(client));
-    saved = await library.save({
+    const draft = {
       householdId,
       actorId: user.id,
       title: field(formData, "title"),
       ingredients: lines(field(formData, "ingredients")),
       method: lines(field(formData, "method")),
-      sourceUrl: field(formData, "sourceUrl"),
-    });
+      sourceUrl: field(formData, "sourceUrl") || null,
+    };
+    const result = await library.save(draft);
+    if (result.wasDuplicate) {
+      revalidatePath("/");
+      return {
+        existingRecipe: {
+          id: result.recipe.id,
+          title: result.recipe.title,
+        },
+      };
+    }
+    saved = result.recipe;
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not save the recipe." };
   }

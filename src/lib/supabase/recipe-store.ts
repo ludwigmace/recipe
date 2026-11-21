@@ -8,7 +8,7 @@ interface RecipeRow {
   title: string;
   ingredients: string[];
   method: string[];
-  source_url: string;
+  source_url: string | null;
   archived_at: string | null;
   created_at: string;
   updated_at: string;

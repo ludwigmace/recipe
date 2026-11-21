@@ -4,7 +4,6 @@ import { HouseholdSetup } from "@/components/household-setup";
 import { InviteAcceptance } from "@/components/invite-acceptance";
 import { InvitePanel } from "@/components/invite-panel";
 import { HouseholdSwitcher } from "@/components/household-switcher";
-import { RecipeCapture } from "@/components/recipe-capture";
 import { RecipeCollection } from "@/components/recipe-collection";
 import { signOutAction } from "@/app/actions";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
@@ -91,7 +90,6 @@ export default async function Home({ searchParams }: PageProps) {
         <InvitePanel householdId={household.id} />
       </section>
 
-      <RecipeCapture householdId={household.id} />
       <RecipeCollection
         householdId={household.id}
         recipes={recipes}

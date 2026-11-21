@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Recipe } from "@/lib/recipe-library";
 import { ArchiveRecipeForm, EditRecipeForm, RestoreRecipeForm } from "./recipe-forms";
 
@@ -25,17 +26,26 @@ export function RecipeCollection({
             {query ? ` matching “${query}”` : ""}
           </span>
         </div>
-        <form className="search-form" action="/" method="get" role="search">
-          <label className="sr-only" htmlFor="recipe-search">Search by recipe name</label>
-          <input
-            id="recipe-search"
-            name="q"
-            type="search"
-            placeholder="Find a recipe by name…"
-            defaultValue={query}
-          />
-          <button className="button button-small" type="submit">Search</button>
-        </form>
+        <div className="collection-actions">
+          <Link
+            className="button button-small"
+            href={`/recipes/add?household=${encodeURIComponent(householdId)}`}
+          >
+            Add recipe
+          </Link>
+          <form className="search-form" action="/" method="get" role="search">
+            <label className="sr-only" htmlFor="recipe-search">Search by recipe name</label>
+            <input
+              id="recipe-search"
+              name="q"
+              type="search"
+              placeholder="Find a recipe by name…"
+              defaultValue={query}
+            />
+            <input type="hidden" name="household" value={householdId} />
+            <button className="button button-small" type="submit">Search</button>
+          </form>
+        </div>
       </div>
 
       {recipes.length ? (
@@ -45,12 +55,14 @@ export function RecipeCollection({
               <div className="recipe-card-content">
                 <div className="recipe-meta"><span className="pill">Household recipe</span></div>
                 <h3>{recipe.title}</h3>
-                <p className="recipe-source">
-                  From{" "}
-                  <a href={recipe.sourceUrl} target="_blank" rel="noreferrer">
-                    {new URL(recipe.sourceUrl).hostname}
-                  </a>
-                </p>
+                {recipe.sourceUrl && (
+                  <p className="recipe-source">
+                    From{" "}
+                    <a href={recipe.sourceUrl} target="_blank" rel="noreferrer">
+                      {new URL(recipe.sourceUrl).hostname}
+                    </a>
+                  </p>
+                )}
                 <div className="recipe-columns">
                   <div>
                     <h4>Ingredients</h4>
@@ -80,8 +92,8 @@ export function RecipeCollection({
         <div className="empty-state">
           <strong>{query ? "No recipe by that name yet." : "Your collection starts here."}</strong>
           {query
-            ? "Try a shorter name, or save the recipe above."
-            : "Save a recipe from a page full of ads. This is the good part."}
+            ? "Try a shorter name, or add a recipe."
+            : "Import a recipe from a webpage or create one from scratch."}
         </div>
       )}
 
@@ -94,7 +106,9 @@ export function RecipeCollection({
               <div className="archived-row" key={recipe.id}>
                 <div>
                   <strong>{recipe.title}</strong>
-                  <p>Saved from {new URL(recipe.sourceUrl).hostname}</p>
+                  {recipe.sourceUrl && (
+                    <p>Saved from {new URL(recipe.sourceUrl).hostname}</p>
+                  )}
                 </div>
                 <RestoreRecipeForm householdId={householdId} recipeId={recipe.id} />
               </div>

@@ -4,7 +4,7 @@ export interface RecipeDraft {
   title: string;
   ingredients: string[];
   method: string[];
-  sourceUrl: string;
+  sourceUrl: string | null;
 }
 
 export interface Recipe extends RecipeDraft {
@@ -29,8 +29,13 @@ export interface RecipeStore {
   ): Promise<Recipe | null>;
 }
 
+export interface RecipeSaveResult {
+  recipe: Recipe;
+  wasDuplicate: boolean;
+}
+
 export interface RecipeLibrary {
-  save(draft: RecipeDraft): Promise<Recipe>;
+  save(draft: RecipeDraft): Promise<RecipeSaveResult>;
   search(input: { householdId: string; query: string }): Promise<Recipe[]>;
   listArchived(input: { householdId: string }): Promise<Recipe[]>;
   archive(input: { householdId: string; recipeId: string }): Promise<Recipe>;
@@ -51,7 +56,8 @@ export class RecipeNotFoundError extends Error {
   }
 }
 
-function canonicalizeSourceUrl(value: string): string {
+function canonicalizeSourceUrl(value: string | null): string | null {
+  if (!value?.trim()) return null;
   const url = new URL(value);
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     throw new Error("Recipe sources must use HTTP or HTTPS");
@@ -83,17 +89,22 @@ export function createRecipeLibrary(store: RecipeStore): RecipeLibrary {
   return {
     async save(draft) {
       const sourceUrl = canonicalizeSourceUrl(draft.sourceUrl);
-      const existing = await store.findBySource(draft.householdId, sourceUrl);
+      const existing = sourceUrl
+        ? await store.findBySource(draft.householdId, sourceUrl)
+        : null;
       if (existing?.archivedAt) {
         const now = new Date().toISOString();
-        return requireRecipe(
-          await store.update(draft.householdId, existing.id, {
-            archivedAt: null,
-            updatedAt: now,
-          }),
-        );
+        return {
+          recipe: requireRecipe(
+            await store.update(draft.householdId, existing.id, {
+              archivedAt: null,
+              updatedAt: now,
+            }),
+          ),
+          wasDuplicate: true,
+        };
       }
-      if (existing) return existing;
+      if (existing) return { recipe: existing, wasDuplicate: true };
 
       requireRecipeContent(draft);
       const now = new Date().toISOString();
@@ -106,18 +117,24 @@ export function createRecipeLibrary(store: RecipeStore): RecipeLibrary {
         updatedAt: now,
       };
       try {
-        return await store.insert(recipe);
+        return { recipe: await store.insert(recipe), wasDuplicate: false };
       } catch (error) {
+        if (!sourceUrl) throw error;
         const winner = await store.findBySource(draft.householdId, sourceUrl);
         if (!winner) throw error;
-        if (winner.archivedAt === null) return winner;
+        if (winner.archivedAt === null) {
+          return { recipe: winner, wasDuplicate: true };
+        }
         const restoredAt = new Date().toISOString();
-        return requireRecipe(
-          await store.update(draft.householdId, winner.id, {
-            archivedAt: null,
-            updatedAt: restoredAt,
-          }),
-        );
+        return {
+          recipe: requireRecipe(
+            await store.update(draft.householdId, winner.id, {
+              archivedAt: null,
+              updatedAt: restoredAt,
+            }),
+          ),
+          wasDuplicate: true,
+        };
       }
     },
 

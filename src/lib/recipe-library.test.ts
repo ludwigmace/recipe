@@ -37,6 +37,7 @@ function createMemoryStore(): RecipeStore {
     },
     async insert(recipe) {
       if (
+        recipe.sourceUrl !== null &&
         [...recipes.values()].some(
           (existing) =>
             existing.householdId === recipe.householdId &&
@@ -59,9 +60,62 @@ function createMemoryStore(): RecipeStore {
 }
 
 describe("RecipeLibrary", () => {
+  it("saves a manually created recipe without a source URL", async () => {
+    const library = createRecipeLibrary(createMemoryStore());
+
+    const { recipe: saved } = await library.save({
+      householdId: "home-1",
+      actorId: "member-1",
+      title: "Grandma's Soup",
+      ingredients: ["2 cups broth"],
+      method: ["Simmer"],
+      sourceUrl: null,
+    });
+
+    expect(saved.sourceUrl).toBeNull();
+  });
+
+  it("requires an HTTP or HTTPS URL when a source is provided", async () => {
+    const library = createRecipeLibrary(createMemoryStore());
+
+    await expect(
+      library.save({
+        householdId: "home-1",
+        actorId: "member-1",
+        title: "Grandma's Soup",
+        ingredients: ["2 cups broth"],
+        method: ["Simmer"],
+        sourceUrl: "ftp://example.com/soup",
+      }),
+    ).rejects.toThrow("Recipe sources must use HTTP or HTTPS");
+  });
+
+  it("allows multiple manually created recipes without source URLs", async () => {
+    const library = createRecipeLibrary(createMemoryStore());
+
+    const { recipe: first } = await library.save({
+      householdId: "home-1",
+      actorId: "member-1",
+      title: "Grandma's Soup",
+      ingredients: ["2 cups broth"],
+      method: ["Simmer"],
+      sourceUrl: null,
+    });
+    const { recipe: second } = await library.save({
+      householdId: "home-1",
+      actorId: "member-1",
+      title: "Sunday Roast",
+      ingredients: ["1 roast"],
+      method: ["Roast"],
+      sourceUrl: null,
+    });
+
+    expect(second.id).not.toBe(first.id);
+  });
+
   it("saves a recipe and makes it findable by title", async () => {
     const library = createRecipeLibrary(createMemoryStore());
-    const saved = await library.save({
+    const { recipe: saved } = await library.save({
       householdId: "home-1",
       actorId: "member-1",
       title: "Sweet Potato Pie",
@@ -87,11 +141,13 @@ describe("RecipeLibrary", () => {
       sourceUrl: "https://example.com/sweet-potato-pie",
     };
 
-    const first = await library.save(draft);
-    const second = await library.save({ ...draft, title: "Updated page title" });
+    const firstResult = await library.save(draft);
+    const secondResult = await library.save({ ...draft, title: "Updated page title" });
 
-    expect(second.id).toBe(first.id);
-    expect(second.title).toBe("Sweet Potato Pie");
+    expect(secondResult.recipe.id).toBe(firstResult.recipe.id);
+    expect(secondResult.recipe.title).toBe("Sweet Potato Pie");
+    expect(firstResult.wasDuplicate).toBe(false);
+    expect(secondResult.wasDuplicate).toBe(true);
   });
 
   it("opens an existing recipe even when the duplicate page cannot be extracted", async () => {
@@ -104,7 +160,7 @@ describe("RecipeLibrary", () => {
       method: ["Bake until set"],
       sourceUrl: "https://example.com/sweet-potato-pie",
     };
-    const saved = await library.save(draft);
+    const { recipe: saved } = await library.save(draft);
 
     const duplicate = await library.save({
       ...draft,
@@ -113,7 +169,8 @@ describe("RecipeLibrary", () => {
       method: [],
     });
 
-    expect(duplicate.id).toBe(saved.id);
+    expect(duplicate.recipe.id).toBe(saved.id);
+    expect(duplicate.wasDuplicate).toBe(true);
   });
 
   it("returns the winning recipe when simultaneous saves race on the same URL", async () => {
@@ -132,12 +189,13 @@ describe("RecipeLibrary", () => {
       library.save(draft),
     ]);
 
-    expect(second.id).toBe(first.id);
+    expect(second.recipe.id).toBe(first.recipe.id);
+    expect([first.wasDuplicate, second.wasDuplicate]).toContain(true);
   });
 
   it("hides an archived recipe from normal search", async () => {
     const library = createRecipeLibrary(createMemoryStore());
-    const recipe = await library.save({
+    const { recipe } = await library.save({
       householdId: "home-1",
       actorId: "member-1",
       title: "Sweet Potato Pie",
@@ -155,7 +213,7 @@ describe("RecipeLibrary", () => {
 
   it("lists archived recipes separately so members can restore them", async () => {
     const library = createRecipeLibrary(createMemoryStore());
-    const recipe = await library.save({
+    const { recipe } = await library.save({
       householdId: "home-1",
       actorId: "member-1",
       title: "Sweet Potato Pie",
@@ -172,7 +230,7 @@ describe("RecipeLibrary", () => {
 
   it("restores an archived recipe to normal search", async () => {
     const library = createRecipeLibrary(createMemoryStore());
-    const recipe = await library.save({
+    const { recipe } = await library.save({
       householdId: "home-1",
       actorId: "member-1",
       title: "Sweet Potato Pie",
@@ -191,7 +249,7 @@ describe("RecipeLibrary", () => {
 
   it("updates the shared recipe content without changing its source", async () => {
     const library = createRecipeLibrary(createMemoryStore());
-    const recipe = await library.save({
+    const { recipe } = await library.save({
       householdId: "home-1",
       actorId: "member-1",
       title: "Sweet Potato Pie",
@@ -226,7 +284,7 @@ describe("RecipeLibrary", () => {
       method: ["Bake until set"],
       sourceUrl: "https://example.com/sweet-potato-pie",
     };
-    const saved = await library.save(draft);
+    const { recipe: saved } = await library.save(draft);
     await library.archive({ householdId: "home-1", recipeId: saved.id });
 
     const reopened = await library.save({
@@ -236,8 +294,9 @@ describe("RecipeLibrary", () => {
       method: [],
     });
 
-    expect(reopened.id).toBe(saved.id);
-    expect(reopened.archivedAt).toBeNull();
+    expect(reopened.recipe.id).toBe(saved.id);
+    expect(reopened.recipe.archivedAt).toBeNull();
+    expect(reopened.wasDuplicate).toBe(true);
   });
 
   it("requires title, ingredients, and method before saving", async () => {
