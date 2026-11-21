@@ -10,9 +10,11 @@ interface Household {
 export function HouseholdSwitcher({
   households,
   selectedId,
+  pathname = "/",
 }: {
   households: Household[];
   selectedId: string;
+  pathname?: string;
 }) {
   const router = useRouter();
 
@@ -22,7 +24,7 @@ export function HouseholdSwitcher({
       <select
         value={selectedId}
         onChange={(event) => {
-          router.push(`/?household=${encodeURIComponent(event.target.value)}`);
+          router.push(`${pathname}?household=${encodeURIComponent(event.target.value)}`);
         }}
       >
         {households.map((household) => (

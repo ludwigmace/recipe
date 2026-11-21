@@ -11,6 +11,10 @@ function field(formData: FormData, name: string): string {
   return String(formData.get(name) ?? "").trim();
 }
 
+function rawField(formData: FormData, name: string): string {
+  return String(formData.get(name) ?? "");
+}
+
 function lines(value: string): string[] {
   return value
     .split(/\r?\n/)
@@ -98,6 +102,57 @@ export async function renameHouseholdAction(
   if (error) return { error: error.message };
   revalidatePath("/");
   return { message: "Household name updated." };
+}
+
+export async function updateAccountEmailAction(
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const email = field(formData, "email");
+  const householdId = field(formData, "householdId");
+  const client = await createSupabaseServerClient();
+  if (!(await currentUser(client))) return { error: "Sign in before changing your email." };
+
+  const next = `/settings?household=${encodeURIComponent(householdId)}`;
+  const emailRedirectTo =
+    `${await siteUrl()}/auth/callback?next=${encodeURIComponent(next)}`;
+  const { error } = await client.auth.updateUser(
+    { email },
+    { emailRedirectTo },
+  );
+  if (error) return { error: error.message };
+  revalidatePath("/settings");
+  return {
+    message: "Check your current and new email addresses to confirm the change.",
+  };
+}
+
+export async function updateAccountPasswordAction(
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const currentPassword = rawField(formData, "currentPassword");
+  const password = rawField(formData, "password");
+  const passwordConfirmation = rawField(formData, "passwordConfirmation");
+  const client = await createSupabaseServerClient();
+  const user = await currentUser(client);
+  if (!user?.email) return { error: "Sign in before changing your password." };
+  if (!currentPassword) return { error: "Enter your current password." };
+  if (password.length < 8) return { error: "Use at least 8 characters for your new password." };
+  if (password !== passwordConfirmation) {
+    return { error: "The new passwords do not match." };
+  }
+
+  const { error: signInError } = await client.auth.signInWithPassword({
+    email: user.email,
+    password: currentPassword,
+  });
+  if (signInError) return { error: "Your current password is incorrect." };
+
+  const { error } = await client.auth.updateUser({ password });
+  if (error) return { error: error.message };
+  revalidatePath("/settings");
+  return { message: "Password updated." };
 }
 
 export async function createInviteAction(

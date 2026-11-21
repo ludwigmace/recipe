@@ -46,6 +46,7 @@ export default async function RecipePage({ params, searchParams }: PageProps) {
   if (!recipe) notFound();
 
   const libraryUrl = `/?household=${encodeURIComponent(household.id)}`;
+  const settingsUrl = `/settings?household=${encodeURIComponent(household.id)}`;
 
   return (
     <main className="page-shell">
@@ -56,6 +57,11 @@ export default async function RecipePage({ params, searchParams }: PageProps) {
         </Link>
         <div className="topbar-household">
           <span>{household.name}</span>
+        </div>
+        <div className="topbar-actions">
+          <Link className="member-email" href={settingsUrl}>
+            {auth.user.email ?? "Account settings"}
+          </Link>
         </div>
       </header>
 

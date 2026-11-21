@@ -2,8 +2,6 @@ import Link from "next/link";
 import { AuthPanel } from "@/components/auth-panel";
 import { HouseholdSetup } from "@/components/household-setup";
 import { InviteAcceptance } from "@/components/invite-acceptance";
-import { InvitePanel } from "@/components/invite-panel";
-import { HouseholdNameForm } from "@/components/household-name-form";
 import { HouseholdSwitcher } from "@/components/household-switcher";
 import { RecipeCollection } from "@/components/recipe-collection";
 import { signOutAction } from "@/app/actions";
@@ -71,19 +69,18 @@ export default async function Home({ searchParams }: PageProps) {
           recipe
         </Link>
         <div className="topbar-household">
-          <div className="household-title-row">
-            <h1>{household.name}</h1>
-            <HouseholdNameForm
-              householdId={household.id}
-              householdName={household.name}
-            />
-          </div>
+          <h1>{household.name}</h1>
           {households.length > 1 && (
             <HouseholdSwitcher households={households} selectedId={household.id} />
           )}
         </div>
         <div className="topbar-actions">
-          <span className="member-email">{user.email}</span>
+          <Link
+            className="member-email"
+            href={`/settings?household=${encodeURIComponent(household.id)}`}
+          >
+            {user.email ?? "Account settings"}
+          </Link>
           <form action={signOutAction}>
             <button className="button button-quiet button-small" type="submit">
               Sign out
@@ -111,7 +108,6 @@ export default async function Home({ searchParams }: PageProps) {
           <input type="hidden" name="household" value={household.id} />
           <button className="button button-small" type="submit">Search</button>
         </form>
-        <InvitePanel householdId={household.id} />
       </div>
 
       <RecipeCollection

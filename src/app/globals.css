@@ -39,11 +39,11 @@ a { color: inherit; }
 .wordmark { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); font-size: 20px; font-weight: 700; letter-spacing: -0.06em; text-decoration: none; }
 .wordmark-mark { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 10px 10px 10px 3px; background: var(--green); color: white; font-family: "DM Sans", sans-serif; font-size: 17px; font-weight: 700; }
 .topbar-household { min-width: 0; justify-self: center; text-align: center; }
-.household-title-row { display: flex; align-items: center; justify-content: center; gap: 8px; }
 .topbar-household h1, .topbar-household > span { display: block; max-width: min(42vw, 480px); margin: 0; overflow: hidden; color: var(--ink); font-family: "DM Sans", sans-serif; font-size: clamp(20px, 2.6vw, 30px); font-weight: 600; letter-spacing: 0; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
 .topbar-household .household-switcher { margin-top: 2px; }
 .topbar-actions { display: flex; align-items: center; justify-self: end; gap: 18px; }
-.member-email { color: var(--muted); font-size: 13px; }
+.member-email { color: var(--muted); font-size: 13px; text-decoration: none; }
+.member-email:hover { color: var(--green); text-decoration: underline; }
 
 .eyebrow { margin: 0 0 10px; color: var(--green); font-size: 10px; font-weight: 700; letter-spacing: 0.17em; }
 h1, h2, h3, p { margin-top: 0; }
@@ -51,10 +51,7 @@ h1, h2, h3 { font-family: "DM Sans", sans-serif; font-weight: 600; letter-spacin
 .hero-copy { margin: 10px 0 0; color: var(--muted); font-size: 16px; }
 .household-switcher { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; color: var(--muted); font-size: 12px; }
 .household-switcher select { min-height: 31px; padding: 0 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--ink); font: inherit; }
-.household-name-edit { position: relative; flex-shrink: 0; }
-.household-name-edit > summary { color: var(--green); cursor: pointer; font-size: 12px; font-weight: 600; list-style: none; white-space: nowrap; }
-.household-name-edit > summary::-webkit-details-marker { display: none; }
-.household-name-form { position: absolute; top: calc(100% + 8px); left: 50%; z-index: 10; display: grid; gap: 10px; width: min(300px, calc(100vw - 36px)); padding: 14px; transform: translateX(-50%); border: 1px solid var(--line); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); text-align: left; }
+.household-name-form { display: grid; gap: 10px; max-width: 420px; margin-top: 12px; }
 
 .button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 18px; border: 0; border-radius: 9px; background: var(--green); color: white; font-weight: 600; text-decoration: none; transition: background .15s ease, transform .15s ease; }
 .button:hover { background: var(--green-dark); transform: translateY(-1px); }
@@ -70,7 +67,7 @@ h1, h2, h3 { font-family: "DM Sans", sans-serif; font-weight: 600; letter-spacin
 .invite-result { display: grid; gap: 8px; margin-top: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); font-size: 12px; }
 .invite-result a { overflow-wrap: anywhere; color: var(--green); }
 
-.library-toolbar { display: grid; grid-template-columns: auto minmax(220px, 1fr) auto; align-items: start; gap: 12px; padding: 16px 0 24px; }
+.library-toolbar { display: grid; grid-template-columns: auto minmax(220px, 1fr); align-items: start; gap: 12px; padding: 16px 0 24px; }
 .library-toolbar > .button { white-space: nowrap; }
 .library-toolbar .search-form { width: 100%; }
 .library-toolbar .invite-box { min-width: 0; }
@@ -152,6 +149,16 @@ label { display: grid; gap: 7px; color: #514e47; font-size: 12px; font-weight: 6
 .recipe-detail-actions .edit-details { margin-top: 0; }
 .empty-state { padding: 32px; border: 1px dashed #d8d3c6; border-radius: 14px; color: var(--muted); text-align: center; }
 .empty-state strong { display: block; margin-bottom: 4px; color: var(--ink); font-family: "DM Sans", sans-serif; font-size: 20px; font-weight: 600; }
+.settings-page { padding: 26px 0 64px; }
+.settings-page > h1 { margin: 12px 0 22px; font-size: 32px; }
+.settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 16px; }
+.settings-grid > :first-child { grid-row: span 2; }
+.settings-panel { padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+.settings-panel h2 { margin-bottom: 14px; font-size: 21px; }
+.settings-panel h3 { margin: 18px 0 8px; font-size: 16px; }
+.settings-panel > p { color: var(--muted); font-size: 13px; }
+.account-settings-form { display: grid; gap: 12px; }
+.account-settings-form + h3 { margin-top: 26px; }
 
 .setup-shell { min-height: 100vh; display: grid; place-items: center; padding: 22px; }
 .setup-card { width: min(480px, 100%); padding: 38px; border: 1px solid var(--line); border-radius: 18px; background: var(--card); box-shadow: var(--shadow); }
@@ -170,14 +177,12 @@ label { display: grid; gap: 7px; color: #514e47; font-size: 12px; font-weight: 6
 @media (max-width: 680px) {
   .page-shell { width: min(100% - 28px, 1050px); }
   .topbar { min-height: 64px; }
-  .member-email { display: none; }
   .topbar { grid-template-columns: auto minmax(0, 1fr) auto; gap: 7px; }
   .topbar-household h1, .topbar-household > span { max-width: 30vw; font-size: 19px; }
-  .household-title-row { gap: 4px; }
-  .household-name-edit > summary { font-size: 10px; }
   .topbar-actions { gap: 6px; }
+  .member-email { display: block; max-width: 22vw; overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
   .topbar-actions .button { padding: 0 8px; font-size: 11px; }
-  .library-toolbar { grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px; padding: 12px 0 20px; }
+  .library-toolbar { grid-template-columns: auto minmax(0, 1fr); gap: 6px; padding: 12px 0 20px; }
   .library-toolbar > .button, .library-toolbar .button { min-height: 36px; padding: 0 8px; font-size: 11px; }
   .library-toolbar .search-form { gap: 4px; min-width: 0; }
   .library-toolbar .search-form input { min-width: 0; padding: 0 7px; font-size: 12px; }
@@ -192,5 +197,7 @@ label { display: grid; gap: 7px; color: #514e47; font-size: 12px; font-weight: 6
   .recipe-card-content { padding: 17px; }
   .recipe-detail { padding-top: 20px; }
   .recipe-detail-actions { display: grid; }
+  .settings-grid { grid-template-columns: 1fr; }
+  .settings-grid > :first-child { grid-row: auto; }
   .setup-card { padding: 28px; }
 }

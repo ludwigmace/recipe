@@ -37,6 +37,7 @@ export default async function AddRecipePage({ searchParams }: PageProps) {
     <RecipeBuilder
       householdId={household.id}
       householdName={household.name}
+      memberEmail={auth.user.email ?? ""}
     />
   );
 }

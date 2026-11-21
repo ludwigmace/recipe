@@ -23,11 +23,14 @@ function emptyDraft(sourceUrl: string | null): Draft {
 export function RecipeBuilder({
   householdId,
   householdName,
+  memberEmail,
 }: {
   householdId: string;
   householdName: string;
+  memberEmail: string;
 }) {
   const libraryUrl = `/?household=${encodeURIComponent(householdId)}`;
+  const settingsUrl = `/settings?household=${encodeURIComponent(householdId)}`;
   const router = useRouter();
   const [entryPath, setEntryPath] = useState<EntryPath | null>(null);
   const [url, setUrl] = useState("");
@@ -196,6 +199,11 @@ export function RecipeBuilder({
         </Link>
         <div className="topbar-household">
           <span>{householdName}</span>
+        </div>
+        <div className="topbar-actions">
+          <Link className="member-email" href={settingsUrl}>
+            {memberEmail || "Account settings"}
+          </Link>
         </div>
       </header>
 
