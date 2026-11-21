@@ -62,10 +62,19 @@ export default async function Home({ searchParams }: PageProps) {
   return (
     <main className="page-shell">
       <header className="topbar">
-        <Link className="wordmark" href="/">
+        <Link
+          className="wordmark"
+          href={`/?household=${encodeURIComponent(household.id)}`}
+        >
           <span className="wordmark-mark" aria-hidden="true">R</span>
           recipe
         </Link>
+        <div className="topbar-household">
+          <h1>{household.name}</h1>
+          {households.length > 1 && (
+            <HouseholdSwitcher households={households} selectedId={household.id} />
+          )}
+        </div>
         <div className="topbar-actions">
           <span className="member-email">{user.email}</span>
           <form action={signOutAction}>
@@ -76,19 +85,27 @@ export default async function Home({ searchParams }: PageProps) {
         </div>
       </header>
 
-      <section className="hero">
-        <div>
-          <p className="eyebrow">THE HOUSEHOLD COOKBOOK</p>
-          <h1>{household.name}</h1>
-          <p className="hero-copy">
-            Keep the good recipes. Leave the ads behind.
-          </p>
-          {households.length > 1 && (
-            <HouseholdSwitcher households={households} selectedId={household.id} />
-          )}
-        </div>
+      <div className="library-toolbar">
+        <Link
+          className="button button-small"
+          href={`/recipes/add?household=${encodeURIComponent(household.id)}`}
+        >
+          Add Recipe
+        </Link>
+        <form className="search-form" action="/" method="get" role="search">
+          <label className="sr-only" htmlFor="recipe-search">Search recipes</label>
+          <input
+            id="recipe-search"
+            name="q"
+            type="search"
+            placeholder="Search recipes"
+            defaultValue={params.q ?? ""}
+          />
+          <input type="hidden" name="household" value={household.id} />
+          <button className="button button-small" type="submit">Search</button>
+        </form>
         <InvitePanel householdId={household.id} />
-      </section>
+      </div>
 
       <RecipeCollection
         householdId={household.id}
@@ -96,11 +113,6 @@ export default async function Home({ searchParams }: PageProps) {
         archivedRecipes={archivedRecipes}
         query={params.q ?? ""}
       />
-
-      <footer className="site-footer">
-        <span>Made for the recipes worth keeping.</span>
-        <span>Shared by {household.name}</span>
-      </footer>
     </main>
   );
 }
@@ -110,8 +122,8 @@ function SetupNotice({ message }: { message?: string }) {
     <main className="setup-shell">
       <div className="setup-card">
         <span className="wordmark-mark" aria-hidden="true">R</span>
-        <p className="eyebrow">A HOME FOR YOUR RECIPES</p>
-        <h1>Keep the good recipes.</h1>
+        <p className="eyebrow">SETUP</p>
+        <h1>Set up your recipe library.</h1>
         <p className="muted">
           {message ??
             "Add your Supabase project settings to connect your household cookbook."}

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { Recipe } from "@/lib/recipe-library";
 import { ArchiveRecipeForm, EditRecipeForm, RestoreRecipeForm } from "./recipe-forms";
 
@@ -19,32 +18,11 @@ export function RecipeCollection({
     <section aria-labelledby="collection-title">
       <div className="collection-header">
         <div>
-          <p className="eyebrow">THE COLLECTION</p>
-          <h2 id="collection-title">Recipes worth keeping</h2>
+          <h2 id="collection-title">Recipes</h2>
           <span className="collection-count">
             {recipes.length} {recipes.length === 1 ? "recipe" : "recipes"}
             {query ? ` matching “${query}”` : ""}
           </span>
-        </div>
-        <div className="collection-actions">
-          <Link
-            className="button button-small"
-            href={`/recipes/add?household=${encodeURIComponent(householdId)}`}
-          >
-            Add recipe
-          </Link>
-          <form className="search-form" action="/" method="get" role="search">
-            <label className="sr-only" htmlFor="recipe-search">Search by recipe name</label>
-            <input
-              id="recipe-search"
-              name="q"
-              type="search"
-              placeholder="Find a recipe by name…"
-              defaultValue={query}
-            />
-            <input type="hidden" name="household" value={householdId} />
-            <button className="button button-small" type="submit">Search</button>
-          </form>
         </div>
       </div>
 
@@ -90,7 +68,7 @@ export function RecipeCollection({
         </div>
       ) : (
         <div className="empty-state">
-          <strong>{query ? "No recipe by that name yet." : "Your collection starts here."}</strong>
+          <strong>{query ? "No matching recipes." : "No recipes yet."}</strong>
           {query
             ? "Try a shorter name, or add a recipe."
             : "Import a recipe from a webpage or create one from scratch."}
@@ -99,7 +77,6 @@ export function RecipeCollection({
 
       {archivedRecipes.length > 0 && (
         <section className="archived-section" aria-labelledby="archived-title">
-          <p className="eyebrow">TUCKED AWAY, NOT LOST</p>
           <h2 id="archived-title">Archived recipes</h2>
           <div className="archived-list">
             {archivedRecipes.map((recipe) => (

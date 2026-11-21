@@ -194,11 +194,12 @@ export function RecipeBuilder({
           <span className="wordmark-mark" aria-hidden="true">R</span>
           recipe
         </Link>
-        <span className="member-email">{householdName}</span>
+        <div className="topbar-household">
+          <span>{householdName}</span>
+        </div>
       </header>
 
       <section className="recipe-builder">
-        <p className="eyebrow">THE HOUSEHOLD COOKBOOK</p>
         <h1>Add a recipe</h1>
         <p className="hero-copy">Add it to {householdName}’s shared collection.</p>
 
@@ -214,7 +215,7 @@ export function RecipeBuilder({
             </button>
             <button className="recipe-path" type="button" onClick={startManualEntry}>
               <strong>Create manually</strong>
-              <span>Enter a recipe you already know and love.</span>
+              <span>Enter a recipe manually.</span>
             </button>
           </div>
         ) : (
@@ -228,8 +229,8 @@ export function RecipeBuilder({
                 <div className="section-heading">
                   <div>
                     <p className="eyebrow">IMPORT A RECIPE</p>
-                    <h2 id="import-title">Bring a recipe home</h2>
-                    <p>Paste a recipe page. We’ll keep the useful part and leave the ads behind.</p>
+                    <h2 id="import-title">Import from a webpage</h2>
+                    <p>Paste a webpage URL to extract the recipe details.</p>
                   </div>
                 </div>
                 <form className="capture-form" onSubmit={extractRecipe}>
@@ -288,7 +289,7 @@ export function RecipeBuilder({
 
             {entryPath === "manual" && draft && (
               <section className="capture-card" aria-labelledby="manual-title">
-                <p className="eyebrow">MAKE IT YOURS</p>
+                <p className="eyebrow">MANUAL ENTRY</p>
                 <h2 id="manual-title">Create manually</h2>
                 <RecipeEditor
                   key={entryPath}
@@ -307,11 +308,6 @@ export function RecipeBuilder({
           </>
         )}
       </section>
-
-      <footer className="site-footer">
-        <span>Made for the recipes worth keeping.</span>
-        <span>Shared by {householdName}</span>
-      </footer>
     </main>
   );
 }
@@ -353,7 +349,7 @@ function RecipeEditor({
           <input type="hidden" name="sourceUrl" value={draft.sourceUrl ?? ""} />
           <div>
             <p className="eyebrow">REVIEW BEFORE SAVING</p>
-            <h3>Make it yours to cook from.</h3>
+            <h3>Review recipe details.</h3>
           </div>
         </>
       ) : (

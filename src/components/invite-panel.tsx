@@ -17,7 +17,7 @@ export function InvitePanel({ householdId }: { householdId: string }) {
     <div className="invite-box">
       <form action={action}>
         <input type="hidden" name="householdId" value={householdId} />
-        <button className="button button-quiet" type="submit" disabled={pending}>
+        <button className="button button-quiet button-small" type="submit" disabled={pending}>
           {pending ? "Making invite…" : "＋ Invite someone"}
         </button>
       </form>
