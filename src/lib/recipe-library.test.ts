@@ -126,6 +126,109 @@ describe("RecipeLibrary", () => {
     });
   });
 
+  it("saves a separate, normalized preparation-step version", async () => {
+    const library = createRecipeLibrary(createMemoryStore());
+    const { recipe } = await library.save({
+      householdId: "home-1",
+      actorId: "member-1",
+      title: "Tomato Soup",
+      ingredients: ["2 cups tomatoes", "1 cup broth"],
+      method: ["Cook until soft", "Blend"],
+      sourceUrl: null,
+    });
+
+    const updated = await library.setPreparationSteps({
+      householdId: "home-1",
+      recipeId: recipe.id,
+      preparationSteps: [
+        {
+          title: "Prepare",
+          ingredients: ["  2 cups tomatoes  "],
+          method: ["  Chop tomatoes  "],
+        },
+        {
+          title: "Cook",
+          ingredients: ["1 cup broth"],
+          method: ["Simmer", "Blend"],
+        },
+      ],
+    });
+
+    expect(updated.preparationSteps).toEqual([
+      { title: "Prepare", ingredients: ["2 cups tomatoes"], method: ["Chop tomatoes"] },
+      { title: "Cook", ingredients: ["1 cup broth"], method: ["Simmer", "Blend"] },
+    ]);
+    expect(updated.ingredients).toEqual(["2 cups tomatoes", "1 cup broth"]);
+    expect(updated.method).toEqual(["Cook until soft", "Blend"]);
+  });
+
+  it("can remove the preparation-step version without changing the original", async () => {
+    const library = createRecipeLibrary(createMemoryStore());
+    const { recipe } = await library.save({
+      householdId: "home-1",
+      actorId: "member-1",
+      title: "Tomato Soup",
+      ingredients: ["tomatoes"],
+      method: ["Simmer"],
+      sourceUrl: null,
+    });
+    await library.setPreparationSteps({
+      householdId: "home-1",
+      recipeId: recipe.id,
+      preparationSteps: [{ title: "Cook", ingredients: ["tomatoes"], method: ["Simmer"] }],
+    });
+
+    const updated = await library.setPreparationSteps({
+      householdId: "home-1",
+      recipeId: recipe.id,
+      preparationSteps: null,
+    });
+
+    expect(updated.preparationSteps).toBeNull();
+    expect(updated.ingredients).toEqual(["tomatoes"]);
+    expect(updated.method).toEqual(["Simmer"]);
+  });
+
+  it("requires at least one complete preparation step", async () => {
+    const library = createRecipeLibrary(createMemoryStore());
+    const { recipe } = await library.save({
+      householdId: "home-1",
+      actorId: "member-1",
+      title: "Tomato Soup",
+      ingredients: ["tomatoes"],
+      method: ["Simmer"],
+      sourceUrl: null,
+    });
+
+    await expect(
+      library.setPreparationSteps({
+        householdId: "home-1",
+        recipeId: recipe.id,
+        preparationSteps: [],
+      }),
+    ).rejects.toThrow("A step version must contain between 1 and 50 steps");
+  });
+
+  it("requires ingredients to be assigned to preparation steps", async () => {
+    const library = createRecipeLibrary(createMemoryStore());
+    const { recipe } = await library.save({
+      householdId: "home-1",
+      actorId: "member-1",
+      title: "Tomato Soup",
+      ingredients: ["tomatoes"],
+      method: ["Simmer"],
+      sourceUrl: null,
+    });
+
+    await expect(
+      library.setPreparationSteps({
+        householdId: "home-1",
+        recipeId: recipe.id,
+        preparationSteps: [{ title: "Cook", ingredients: [], method: ["Simmer"] }],
+      }),
+    ).rejects.toThrow("Add at least one ingredient to the preparation steps");
+  });
+
   it("requires an HTTP or HTTPS URL when a source is provided", async () => {
     const library = createRecipeLibrary(createMemoryStore());
 

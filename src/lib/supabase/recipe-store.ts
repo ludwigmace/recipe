@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Recipe, RecipeStore } from "../recipe-library";
+import type { PreparationStep, Recipe, RecipeStore } from "../recipe-library";
 
 interface RecipeRow {
   id: string;
@@ -10,6 +10,7 @@ interface RecipeRow {
   method: string[];
   source_url: string | null;
   badges: string[] | null;
+  preparation_steps: PreparationStep[] | null;
   archived_at: string | null;
   created_at: string;
   updated_at: string;
@@ -25,6 +26,7 @@ function fromRow(row: RecipeRow): Recipe {
     method: row.method,
     sourceUrl: row.source_url,
     badges: row.badges ?? [],
+    preparationSteps: row.preparation_steps ?? null,
     archivedAt: row.archived_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -97,6 +99,7 @@ export function createSupabaseRecipeStore(client: SupabaseClient): RecipeStore {
           method: recipe.method,
           source_url: recipe.sourceUrl,
           badges: recipe.badges ?? [],
+          preparation_steps: recipe.preparationSteps,
         })
         .select("*")
         .single();
@@ -110,6 +113,9 @@ export function createSupabaseRecipeStore(client: SupabaseClient): RecipeStore {
       if (changes.ingredients !== undefined) update.ingredients = changes.ingredients;
       if (changes.method !== undefined) update.method = changes.method;
       if (changes.badges !== undefined) update.badges = changes.badges;
+      if (changes.preparationSteps !== undefined) {
+        update.preparation_steps = changes.preparationSteps;
+      }
       if (changes.archivedAt !== undefined) update.archived_at = changes.archivedAt;
 
       const { data, error } = await client

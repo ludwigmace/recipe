@@ -2,7 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createRecipeLibrary, type Recipe } from "@/lib/recipe-library";
+import {
+  createRecipeLibrary,
+  normalizePreparationSteps,
+  type PreparationStep,
+  type Recipe,
+} from "@/lib/recipe-library";
+import { createLlmPreparationStepGenerator } from "@/lib/llm-recipe-extractor";
 import type { ActionState, ExistingRecipeSummary } from "@/lib/action-state";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseRecipeStore } from "@/lib/supabase/recipe-store";
@@ -360,6 +366,84 @@ export async function editRecipeAction(
   }
   revalidatePath("/");
   return { message: "Recipe updated for the household." };
+}
+
+export async function savePreparationStepsAction(
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const client = await createSupabaseServerClient();
+  if (!(await currentUser(client))) {
+    return { error: "Sign in before saving preparation steps." };
+  }
+
+  const householdId = field(formData, "householdId");
+  const recipeId = field(formData, "recipeId");
+  let preparationSteps: PreparationStep[];
+  try {
+    preparationSteps = JSON.parse(field(formData, "preparationSteps")) as PreparationStep[];
+    const library = createRecipeLibrary(createSupabaseRecipeStore(client));
+    await library.setPreparationSteps({ householdId, recipeId, preparationSteps });
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Could not save preparation steps.",
+    };
+  }
+  revalidatePath(`/recipes/${encodeURIComponent(recipeId)}`);
+  return { message: "Preparation steps saved." };
+}
+
+export async function generatePreparationStepsAction(input: {
+  householdId: string;
+  recipeId: string;
+}): Promise<{ steps?: PreparationStep[]; error?: string }> {
+  const client = await createSupabaseServerClient();
+  if (!(await currentUser(client))) {
+    return { error: "Sign in before generating preparation steps." };
+  }
+
+  try {
+    const library = createRecipeLibrary(createSupabaseRecipeStore(client));
+    const recipe = await library.findById(input);
+    if (!recipe) return { error: "Recipe not found." };
+    const steps = normalizePreparationSteps(
+      await createLlmPreparationStepGenerator()(recipe),
+    );
+    return { steps };
+  } catch (error) {
+    return {
+      error: error instanceof Error
+        ? error.message
+        : "Could not generate preparation steps.",
+    };
+  }
+}
+
+export async function removePreparationStepsAction(
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const client = await createSupabaseServerClient();
+  if (!(await currentUser(client))) {
+    return { error: "Sign in before removing preparation steps." };
+  }
+
+  const householdId = field(formData, "householdId");
+  const recipeId = field(formData, "recipeId");
+  try {
+    const library = createRecipeLibrary(createSupabaseRecipeStore(client));
+    await library.setPreparationSteps({
+      householdId,
+      recipeId,
+      preparationSteps: null,
+    });
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Could not remove preparation steps.",
+    };
+  }
+  revalidatePath(`/recipes/${encodeURIComponent(recipeId)}`);
+  return { message: "Preparation-step version removed." };
 }
 
 export async function archiveRecipeAction(

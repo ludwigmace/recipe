@@ -8,8 +8,15 @@ export interface RecipeDraft {
   badges?: string[];
 }
 
+export interface PreparationStep {
+  title: string;
+  ingredients: string[];
+  method: string[];
+}
+
 export interface Recipe extends RecipeDraft {
   badges: string[];
+  preparationSteps: PreparationStep[] | null;
   id: string;
   archivedAt: string | null;
   createdAt: string;
@@ -26,7 +33,16 @@ export interface RecipeStore {
     householdId: string,
     recipeId: string,
     changes: Partial<
-      Pick<Recipe, "title" | "ingredients" | "method" | "badges" | "archivedAt" | "updatedAt">
+      Pick<
+        Recipe,
+        | "title"
+        | "ingredients"
+        | "method"
+        | "badges"
+        | "preparationSteps"
+        | "archivedAt"
+        | "updatedAt"
+      >
     >,
   ): Promise<Recipe | null>;
 }
@@ -60,6 +76,11 @@ export interface RecipeLibrary {
     method: string[];
     badges?: string[];
   }): Promise<Recipe>;
+  setPreparationSteps(input: {
+    householdId: string;
+    recipeId: string;
+    preparationSteps: PreparationStep[] | null;
+  }): Promise<Recipe>;
 }
 
 export class RecipeNotFoundError extends Error {
@@ -91,6 +112,39 @@ function requireRecipeContent(input: {
   if (!input.method.some((step) => step.trim())) {
     throw new Error("Add at least one method step");
   }
+}
+
+export function normalizePreparationSteps(
+  steps: PreparationStep[],
+): PreparationStep[] {
+  if (!steps.length || steps.length > 50) {
+    throw new Error("A step version must contain between 1 and 50 steps");
+  }
+  const normalized = steps.map((step) => ({
+    title: step.title.trim(),
+    ingredients: step.ingredients.map((item) => item.trim()).filter(Boolean),
+    method: step.method.map((item) => item.trim()).filter(Boolean),
+  }));
+  if (normalized.some((step) => !step.title || step.title.length > 100)) {
+    throw new Error("Each preparation step needs a title of at most 100 characters");
+  }
+  if (normalized.some((step) => !step.method.length || step.method.some((item) => item.length > 2000))) {
+    throw new Error("Each preparation step needs instructions of at most 2,000 characters");
+  }
+  if (normalized.some((step) => step.ingredients.some((item) => item.length > 500))) {
+    throw new Error("Each step ingredient must be 500 characters or fewer");
+  }
+  const ingredientCount = normalized.reduce(
+    (count, step) => count + step.ingredients.length,
+    0,
+  );
+  if (ingredientCount === 0) {
+    throw new Error("Add at least one ingredient to the preparation steps");
+  }
+  if (ingredientCount > 100) {
+    throw new Error("A step version can contain at most 100 ingredient entries");
+  }
+  return normalized;
 }
 
 export function createRecipeLibrary(store: RecipeStore): RecipeLibrary {
@@ -128,6 +182,7 @@ export function createRecipeLibrary(store: RecipeStore): RecipeLibrary {
         id: crypto.randomUUID(),
         sourceUrl,
         badges: draft.badges ?? [],
+        preparationSteps: null,
         archivedAt: null,
         createdAt: now,
         updatedAt: now,
@@ -209,6 +264,20 @@ export function createRecipeLibrary(store: RecipeStore): RecipeLibrary {
           ...(badges !== undefined && {
             badges: [...new Set(badges.map((badge) => badge.trim().toLowerCase()))],
           }),
+          updatedAt: now,
+        }),
+      );
+    },
+
+    async setPreparationSteps({ householdId, recipeId, preparationSteps }) {
+      requireRecipe(await store.findById(householdId, recipeId));
+      const normalizedSteps = preparationSteps
+        ? normalizePreparationSteps(preparationSteps)
+        : null;
+      const now = new Date().toISOString();
+      return requireRecipe(
+        await store.update(householdId, recipeId, {
+          preparationSteps: normalizedSteps,
           updatedAt: now,
         }),
       );

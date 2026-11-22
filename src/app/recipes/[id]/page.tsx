@@ -7,6 +7,7 @@ import {
 } from "@/components/recipe-forms";
 import { RecipeBadges } from "@/components/recipe-badges";
 import { RecipeSourceLink } from "@/components/recipe-source-link";
+import { RecipePreparationVersion } from "@/components/recipe-preparation-version";
 import { createRecipeLibrary } from "@/lib/recipe-library";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -80,24 +81,7 @@ export default async function RecipePage({ params, searchParams }: PageProps) {
           availableBadges={(household.available_badges as string[]) ?? []}
         />
 
-        <div className="recipe-detail-columns">
-          <section aria-labelledby="ingredients-title">
-            <h2 id="ingredients-title">Ingredients</h2>
-            <ul>
-              {recipe.ingredients.map((ingredient, index) => (
-                <li key={`${index}-${ingredient}`}>{ingredient}</li>
-              ))}
-            </ul>
-          </section>
-          <section aria-labelledby="method-title">
-            <h2 id="method-title">Method</h2>
-            <ol>
-              {recipe.method.map((step, index) => (
-                <li key={`${index}-${step}`}>{step}</li>
-              ))}
-            </ol>
-          </section>
-        </div>
+        <RecipePreparationVersion householdId={household.id} recipe={recipe} />
 
         <div className="recipe-detail-actions">
           {recipe.archivedAt ? (
