@@ -4,7 +4,7 @@ export interface ExtractedRecipe {
   title: string;
   ingredients: string[];
   method: string[];
-  sourceUrl: string;
+  sourceUrl: string | null;
 }
 
 export type RecipeExtraction = {

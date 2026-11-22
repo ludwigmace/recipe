@@ -14,7 +14,7 @@ interface Draft {
   sourceUrl: string | null;
 }
 
-type EntryPath = "import" | "manual";
+type EntryPath = "webpage" | "file" | "manual";
 
 function emptyDraft(sourceUrl: string | null): Draft {
   return { title: "", ingredients: [], method: [], sourceUrl };
@@ -168,6 +168,39 @@ export function RecipeBuilder({
     }
   }
 
+  async function extractRecipeFile(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setExtractError("");
+    setWarning("");
+    setExistingRecipe(null);
+    setDraft(null);
+    setExtracting(true);
+    try {
+      const response = await fetch("/api/recipes/import-file", {
+        method: "POST",
+        body: new FormData(event.currentTarget),
+      });
+      const result = (await response.json()) as RecipeExtraction;
+      if (!response.ok) {
+        throw new Error(result.warning ?? "Could not read that recipe file.");
+      }
+
+      setDraft(result.recipe ?? emptyDraft(null));
+      setWarning(result.warning ?? "");
+      markDirty();
+    } catch (error) {
+      setDraft(emptyDraft(null));
+      setExtractError(
+        error instanceof Error
+          ? error.message
+          : "Could not read that recipe file. You can enter it manually.",
+      );
+      markDirty();
+    } finally {
+      setExtracting(false);
+    }
+  }
+
   function updateDraft(key: keyof Draft, value: string) {
     if (key === "sourceUrl") {
       sourceCheckRequestRef.current += 1;
@@ -214,10 +247,18 @@ export function RecipeBuilder({
             <button
               className="recipe-path"
               type="button"
-              onClick={() => setEntryPath("import")}
+              onClick={() => setEntryPath("webpage")}
             >
               <strong>Import from a webpage</strong>
               <span>Paste a recipe link and review what we find.</span>
+            </button>
+            <button
+              className="recipe-path"
+              type="button"
+              onClick={() => setEntryPath("file")}
+            >
+              <strong>Import from a file</strong>
+              <span>Use a PDF or plain-text recipe file.</span>
             </button>
             <button className="recipe-path" type="button" onClick={startManualEntry}>
               <strong>Create manually</strong>
@@ -230,7 +271,7 @@ export function RecipeBuilder({
               ← All ways to add
             </button>
 
-            {entryPath === "import" && (
+            {entryPath === "webpage" && (
               <section className="capture-card" aria-labelledby="import-title">
                 <div className="section-heading">
                   <div>
@@ -282,7 +323,59 @@ export function RecipeBuilder({
                   <RecipeEditor
                     key={entryPath}
                     draft={draft}
-                    entryPath="import"
+                    entryPath="webpage"
+                    householdId={householdId}
+                    availableBadges={availableBadges}
+                    warning={warning}
+                    existingRecipe={existingRecipe}
+                    sourceCheckError={sourceCheckError}
+                    onChange={updateDraft}
+                    onDirty={markDirty}
+                    onSourceBlur={checkExistingSource}
+                    onCancel={cancelToLibrary}
+                    onOpenExisting={openExistingRecipe}
+                  />
+                )}
+              </section>
+            )}
+
+            {entryPath === "file" && (
+              <section className="capture-card" aria-labelledby="file-import-title">
+                <div className="section-heading">
+                  <div>
+                    <p className="eyebrow">IMPORT A RECIPE</p>
+                    <h2 id="file-import-title">Import from a file</h2>
+                    <p>
+                      Choose a PDF or plain-text file. We’ll extract the recipe for you to review.
+                    </p>
+                  </div>
+                </div>
+                <form className="capture-form file-capture-form" onSubmit={extractRecipeFile}>
+                  <label htmlFor="recipe-file">
+                    Recipe file <span className="field-note">PDF or TXT, up to 5 MB</span>
+                    <input
+                      id="recipe-file"
+                      name="file"
+                      type="file"
+                      accept=".pdf,.txt,application/pdf,text/plain"
+                      disabled={extracting}
+                      required
+                      onChange={markDirty}
+                    />
+                  </label>
+                  <button className="button" type="submit" disabled={extracting}>
+                    {extracting ? "Extracting recipe…" : "Find recipe"}
+                  </button>
+                </form>
+                <p className="field-note">
+                  Scanned PDFs without selectable text aren’t supported yet.
+                </p>
+                {extractError && <p className="warning-note" role="status">{extractError}</p>}
+                {draft && (
+                  <RecipeEditor
+                    key={entryPath}
+                    draft={draft}
+                    entryPath="file"
                     householdId={householdId}
                     availableBadges={availableBadges}
                     warning={warning}
@@ -361,7 +454,7 @@ function RecipeEditor({
   return (
     <form className="recipe-editor" action={saveAction}>
       <input type="hidden" name="householdId" value={householdId} />
-      {entryPath === "import" ? (
+      {entryPath !== "manual" ? (
         <>
           <input type="hidden" name="sourceUrl" value={draft.sourceUrl ?? ""} />
           <div>
@@ -403,7 +496,7 @@ function RecipeEditor({
           />
         </label>
       </div>
-      {entryPath === "import" && draft.sourceUrl ? (
+      {entryPath === "webpage" && draft.sourceUrl ? (
         <p className="source-note">
           Source: <a href={draft.sourceUrl} target="_blank" rel="noreferrer">{draft.sourceUrl}</a>
         </p>
