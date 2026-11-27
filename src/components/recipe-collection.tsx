@@ -12,6 +12,7 @@ interface Props {
   recipes: Recipe[];
   archivedRecipes: Recipe[];
   query: string;
+  showAll: boolean;
 }
 
 export function RecipeCollection({
@@ -20,6 +21,7 @@ export function RecipeCollection({
   recipes,
   archivedRecipes,
   query,
+  showAll,
 }: Props) {
   const [search, setSearch] = useState(query);
   const [selectedBadges, setSelectedBadges] = useState<Set<string>>(new Set());
@@ -36,6 +38,18 @@ export function RecipeCollection({
     });
   }, [recipes, search, selectedBadges]);
   const hasFilters = Boolean(search.trim()) || selectedBadges.size > 0;
+  const newestRecipes = [...visibleRecipes].sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt)
+  );
+  const displayedRecipes = showAll
+    ? visibleRecipes
+    : newestRecipes.slice(0, 6);
+  const collectionHref = (all: boolean) => {
+    const params = new URLSearchParams({ household: householdId });
+    if (query) params.set("q", query);
+    if (all) params.set("all", "1");
+    return `/?${params.toString()}`;
+  };
 
   return (
     <>
@@ -52,6 +66,7 @@ export function RecipeCollection({
               onChange={(event) => setSearch(event.target.value)}
             />
             <input type="hidden" name="household" value={householdId} />
+            {showAll && <input type="hidden" name="all" value="1" />}
             <button className="sr-only" type="submit" tabIndex={-1}>Apply search</button>
           </form>
           {badgeOptions.length > 0 && (
@@ -101,9 +116,9 @@ export function RecipeCollection({
           </div>
         </div>
 
-        {visibleRecipes.length ? (
+        {displayedRecipes.length ? (
           <div className="recipe-grid">
-            {visibleRecipes.map((recipe) => (
+            {displayedRecipes.map((recipe) => (
               <div
                 className="recipe-card recipe-summary"
                 id={`recipe-${recipe.id}`}
@@ -137,6 +152,17 @@ export function RecipeCollection({
             {hasFilters
               ? "Try changing your search or badge filters."
               : "Import a recipe from a webpage or create one from scratch."}
+          </div>
+        )}
+        {visibleRecipes.length > 6 && (
+          <div className="collection-view-all">
+            {showAll ? (
+              <Link href={collectionHref(false)}>Show fewer recipes</Link>
+            ) : (
+              <Link href={collectionHref(true)}>
+                View all {visibleRecipes.length} recipes
+              </Link>
+            )}
           </div>
         )}
       </section>

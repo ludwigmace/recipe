@@ -11,7 +11,12 @@ import { createRecipeLibrary } from "@/lib/recipe-library";
 import { createSupabaseRecipeStore } from "@/lib/supabase/recipe-store";
 
 interface PageProps {
-  searchParams: Promise<{ q?: string; invite?: string; household?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    invite?: string;
+    household?: string;
+    all?: string;
+  }>;
 }
 
 export default async function Home({ searchParams }: PageProps) {
@@ -100,6 +105,7 @@ export default async function Home({ searchParams }: PageProps) {
         recipes={recipes}
         archivedRecipes={archivedRecipes}
         query={params.q ?? ""}
+        showAll={params.all === "1"}
       />
     </main>
   );
